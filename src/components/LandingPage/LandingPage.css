@@ -1,0 +1,92 @@
+/* Landing Page Neubrutalism Styles */
+
+/* Remove scroll indicator since we're not using it anymore */
+.scroll-indicator {
+  display: none;
+}
+
+/* Neubrutalism button effects */
+.neubrutalism-btn {
+  transition: all 0.2s ease;
+  transform: translate(0, 0);
+  box-shadow: 8px 8px 0px 0px rgba(0, 0, 0, 1);
+}
+
+.neubrutalism-btn:hover {
+  transform: translate(2px, 2px);
+  box-shadow: 4px 4px 0px 0px rgba(0, 0, 0, 1);
+}
+
+.neubrutalism-btn:active {
+  transform: translate(4px, 4px);
+  box-shadow: 2px 2px 0px 0px rgba(0, 0, 0, 1);
+}
+
+/* Card effects */
+.neubrutalism-card {
+  transition: all 0.3s ease;
+  transform: translate(0, 0);
+  box-shadow: 8px 8px 0px 0px rgba(0, 0, 0, 1);
+}
+
+.neubrutalism-card:hover {
+  transform: translate(2px, 2px);
+  box-shadow: 4px 4px 0px 0px rgba(0, 0, 0, 1);
+}
+
+/* Floating decorative elements animation - more subtle */
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0px) rotate(0deg);
+  }
+  50% {
+    transform: translateY(-3px) rotate(1deg);
+  }
+}
+
+.floating-decoration {
+  animation: float 8s ease-in-out infinite;
+}
+
+.floating-decoration:nth-child(2) {
+  animation-delay: 1s;
+}
+
+.floating-decoration:nth-child(3) {
+  animation-delay: 2s;
+}
+
+.floating-decoration:nth-child(4) {
+  animation-delay: 3s;
+}
+
+.floating-decoration:nth-child(5) {
+  animation-delay: 4s;
+}
+
+/* Feature rotation highlight */
+.feature-highlight {
+  animation: highlight-pulse 2s ease-in-out;
+}
+
+@keyframes highlight-pulse {
+  0%, 100% {
+    background-color: white;
+  }
+  50% {
+    background-color: rgb(253, 224, 71); /* yellow-300 */
+  }
+}
+
+/* Mobile optimizations */
+@media (max-width: 768px) {
+  .neubrutalism-btn:hover {
+    transform: translate(1px, 1px);
+    box-shadow: 3px 3px 0px 0px rgba(0, 0, 0, 1);
+  }
+  
+  .neubrutalism-card:hover {
+    transform: translate(1px, 1px);
+    box-shadow: 5px 5px 0px 0px rgba(0, 0, 0, 1);
+  }
+}
