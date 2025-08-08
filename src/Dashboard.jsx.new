@@ -1,0 +1,680 @@
+import React, { useState, useEffect, useCallback } from 'react';
+import Joyride from 'react-joyride';
+import { useAuth } from './context/AuthContext.jsx';
+import { useNotifications } from './context/NotificationContext.jsx';
+import { 
+  Globe, 
+  Users, 
+  BarChart3, 
+  ShoppingCart, 
+  User, 
+  Search, 
+  Handshake, 
+  RefreshCw,
+  Settings,
+  Zap,
+  Activity,
+  Wifi,
+  WifiOff,
+  Network,
+  Database,
+  Shield,
+  Target,
+  Layers,
+  Cpu,
+  Server,
+  Monitor,
+  Home,
+  ArrowLeft,
+  TrendingUp,
+  TrendingDown,
+  Bell,
+  PieChart,
+  LineChart,
+  Download,
+  Package,
+  FileCheck,
+  HelpCircle,
+  Clock
+} from 'lucide-react';
+import ControlPanel from './components/ControlPanel/ControlPanel_neubrutalism';
+import RealtimeLog from './components/RealtimeLog/RealtimeLog_neubrutalism';
+import MetricsDisplay from './components/MetricsDisplay/MetricsDisplay_neubrutalism';
+import NetworkVisualization from './components/NetworkVisualization/NetworkVisualization_neubrutalism';
+import DataCenter from './components/DataCenter/DataCenter';
+import TransactionHistory from './components/TransactionHistory/TransactionHistory';
+import NotificationCenter from './components/NotificationCenter/NotificationCenter';
+import ModeToggle from './components/shared/ModeToggle';
+import genesisLogo from './assets/genesisnet-logo.png';
+import DemoControlPanel from './components/DemoControlPanel';
+import useInteractiveDemo from './hooks/useInteractiveDemo';
+import { DEMO_CONFIG } from './utils/demoConfig';
+
+function Dashboard({ onBackToLanding }) {
+  console.log('Dashboard: Component mounting/rendering');
+  
+  // Get authentication info and logout function
+  const { user, logout } = useAuth();
+  
+  // Access notifications system
+  const { addNotification } = useNotifications();
+  
+  const [searchCriteria, setSearchCriteria] = useState({
+    dataType: 'weather',
+    location: 'Global',
+    timeRange: '2024-01-01 to 2024-12-31',
+    maxPrice: '100',
+    minReputation: '7.0'
+  });
+  
+  const [showDemoControls, setShowDemoControls] = useState(DEMO_CONFIG.DEMO_MODE);
+  const [runTour, setRunTour] = useState(false);
+  const [currentScenario, setCurrentScenario] = useState(null);
+  const [autoStarted, setAutoStarted] = useState(false);
+  const [activeTab, setActiveTab] = useState('network'); // Add active tab state
+  const [showWalletHistory, setShowWalletHistory] = useState(false); // Add wallet history state
+  const [isScanning, setIsScanning] = useState(false); // Add scanning state
+  const [operationMode, setOperationMode] = useState('training'); // Training or Live mode
+
+  // Use the enhanced interactive demo hook
+  const {
+    logs = [],
+    metrics = { totalTransactions: 0, successRate: 0, averageLatency: 0, activeNodes: 0, totalVolume: 0, pendingRequests: 0 },
+    networkData = { nodes: [], connections: [] },
+    searchResults = [],
+    activeConnections = [],
+    transactionPool = [],
+    dataDeliveries = [],
+    activeDownloads = [],
+    completedDeliveries = [],
+    walletBalance = 0,
+    paymentHistory = [],
+    pendingPayments = [],
+    fundingHistory = [],
+    agentStatus,
+    isSearching = false,
+    isNegotiating = false,
+    selectedProvider = null,
+    negotiationStatus = null,
+    lastUpdate,
+    startSearch,
+    negotiate,
+    downloadData,
+    refresh,
+    addLog,
+    clearLogs,
+    isConnectedToICP = false,
+    isMockMode = true,
+    connectionStatus = 'connecting',
+    isLoading = false,
+    error = null,
+    clearError
+  } = useInteractiveDemo(searchCriteria);
+
+  const handleInputChange = useCallback((e) => {
+    const { name, value } = e.target;
+    setSearchCriteria((prevCriteria) => ({
+      ...prevCriteria,
+      [name]: value,
+    }));
+  }, []);
+
+  const handleStartAgent = useCallback(async () => {
+    try {
+      if (startSearch && typeof startSearch === 'function') {
+        await startSearch(searchCriteria);
+      }
+    } catch (error) {
+      console.error('Failed to start agent:', error);
+    }
+  }, [startSearch, searchCriteria]);
+
+  const handleNegotiate = useCallback(async (provider) => {
+    try {
+      if (negotiate && typeof negotiate === 'function') {
+        if (provider) {
+          await negotiate(provider);
+        } else if (searchResults && searchResults.length > 0) {
+          // Use first available provider if no specific provider selected
+          await negotiate(searchResults[0]);
+        }
+      }
+    } catch (error) {
+      console.error('Failed to negotiate:', error);
+    }
+  }, [negotiate, searchResults]);
+
+  const handleRefresh = useCallback(() => {
+    try {
+      if (refresh && typeof refresh === 'function') {
+        refresh();
+      }
+    } catch (error) {
+      console.error('Failed to refresh:', error);
+    }
+  }, [refresh]);
+
+  // Demo scenario handling
+  const handleScenarioStart = useCallback((scenario) => {
+    setCurrentScenario(scenario);
+    
+    // Update search criteria based on scenario
+    if (scenario && scenario.searchParams) {
+      setSearchCriteria({
+        dataType: scenario.searchParams.dataType || 'weather',
+        location: scenario.searchParams.location || 'Global',
+        timeRange: scenario.searchParams.timeRange || '2024-01-01 to 2024-12-31',
+        maxPrice: scenario.searchParams.maxPrice || '100',
+        minReputation: scenario.searchParams.minReputation || '7.0'
+      });
+      
+      // Auto-start the agent if the scenario requires it
+      if (scenario.autoStart) {
+        setTimeout(() => {
+          handleStartAgent();
+          setAutoStarted(true);
+        }, 1000);
+      }
+    }
+  }, [setCurrentScenario, setSearchCriteria, handleStartAgent, setAutoStarted]);
+
+  const handleScanNetwork = () => {
+    setIsScanning(true);
+    
+    // Simulate network scanning
+    setTimeout(() => {
+      setIsScanning(false);
+      handleRefresh();
+      
+      if (addLog) {
+        addLog({
+          message: "Network scan complete. Found 24 active nodes.",
+          type: "info",
+          timestamp: new Date().toISOString()
+        });
+      }
+    }, 2500);
+  };
+
+  // Auto-start demo scenario on first load
+  useEffect(() => {
+    if (DEMO_CONFIG.DEMO_MODE && DEMO_CONFIG.AUTO_START && !autoStarted) {
+      const demoScenario = DEMO_CONFIG.DEFAULT_SCENARIO;
+      if (demoScenario) {
+        setTimeout(() => {
+          handleScenarioStart(demoScenario);
+        }, 2000);
+      }
+    }
+  }, [autoStarted, handleScenarioStart]);
+
+  // Handle mode change
+  const handleModeChange = (mode) => {
+    setOperationMode(mode);
+    addNotification({
+      title: 'Mode Changed',
+      message: `Switched to ${mode === 'training' ? 'Training' : 'Live'} mode.`,
+      severity: 'info',
+      duration: 3000,
+      type: 'toast'
+    });
+  };
+
+  // Add notification on transaction completion or data download
+  useEffect(() => {
+    if (dataDeliveries && dataDeliveries.length > 0) {
+      const latestDelivery = dataDeliveries[dataDeliveries.length - 1];
+      addNotification({
+        title: 'Data Transaction Complete',
+        message: `${latestDelivery.name} has been successfully acquired.`,
+        severity: 'success',
+        category: 'transaction',
+        action: {
+          label: 'View Data',
+          onClick: () => setActiveTab('data')
+        }
+      });
+    }
+  }, [dataDeliveries, addNotification]);
+
+  // Handle keyboard shortcuts
+  useEffect(() => {
+    const handleKeyPress = (e) => {
+      // Only enable keyboard shortcuts when demo controls are active
+      if (showDemoControls) {
+        // Shift + Alt + 1-9 for scenarios
+        if (e.shiftKey && e.altKey && e.key >= '1' && e.key <= '9') {
+          const scenarioIndex = parseInt(e.key) - 1;
+          if (scenarioIndex < DEMO_CONFIG.SCENARIOS.length) {
+            console.log(`Dashboard: Keyboard shortcut - loading scenario ${scenarioIndex + 1}`);
+            setCurrentScenario(DEMO_CONFIG.SCENARIOS[scenarioIndex]);
+            handleScenarioStart(DEMO_CONFIG.SCENARIOS[scenarioIndex]);
+          }
+        }
+        // Shift + Alt + R for refresh
+        else if (e.shiftKey && e.altKey && e.key === 'r') {
+          console.log('Dashboard: Keyboard shortcut - refresh');
+          handleRefresh();
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyPress);
+    return () => window.removeEventListener('keydown', handleKeyPress);
+  }, [showDemoControls, currentScenario, handleRefresh, handleScenarioStart]);
+
+  // Guided tour steps definition - direct dashboard features explanation
+  const tourSteps = [
+    {
+      target: '[data-tour="search-input"]',
+      content: "Enter your search queries here to generate content from the neural network.",
+      placement: "bottom",
+      disableBeacon: true,
+    },
+    {
+      target: '[data-tour="options-button"]',
+      content: "Access additional settings and preferences for AI generation.",
+      placement: "bottom",
+    },
+    {
+      target: '[data-tour="agent-controls"]',
+      content: "Start or stop the AI agent to control the content generation process.",
+      placement: "bottom",
+    },
+    {
+      target: '[data-tour="node-visualization"]',
+      content: "This visualization shows the active nodes in the network and their connections.",
+      placement: "left",
+    },
+    {
+      target: '[data-tour="metrics-display"]',
+      content: "Monitor key performance metrics of the network in real-time.",
+      placement: "left",
+    },
+    {
+      target: '[data-tour="log-panel"]',
+      content: "View detailed logs of all network activity and transactions.",
+      placement: "top",
+    },
+    {
+      target: '[data-tour="search-settings"]',
+      content: "Refine your search with these specific parameters for more targeted results.",
+      placement: "right",
+    }
+  ];
+
+  return (
+    <div className="dashboard h-screen w-screen overflow-hidden bg-gray-100">
+      {/* Tour Guide */}
+      <Joyride
+        steps={tourSteps}
+        run={runTour}
+        continuous={true}
+        showSkipButton={true}
+        styles={{
+          options: {
+            arrowColor: '#fff',
+            backgroundColor: '#fff',
+            overlayColor: 'rgba(0, 0, 0, 0.5)',
+            primaryColor: '#3B82F6',
+            textColor: '#333',
+            width: 300,
+            zIndex: 1000,
+          }
+        }}
+        callback={(data) => {
+          const { status } = data;
+          if (status === 'finished' || status === 'skipped') {
+            setRunTour(false);
+          }
+        }}
+      />
+      
+      {/* Demo Controls */}
+      {showDemoControls && (
+        <div className="fixed top-0 left-0 right-0 z-50 bg-pink-500 border-b-4 border-black shadow-[0px_4px_0px_0px_rgba(0,0,0,1)]">
+          <div className="container mx-auto px-4 py-2">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-2">
+                <span className="text-white font-black text-sm">DEMO MODE</span>
+                <div className="relative">
+                  <select
+                    value={currentScenario ? currentScenario.name : ''}
+                    onChange={(e) => {
+                      const scenarioName = e.target.value;
+                      const scenario = DEMO_CONFIG.SCENARIOS.find(s => s.name === scenarioName);
+                      if (scenario) {
+                        setCurrentScenario(scenario);
+                        handleScenarioStart(scenario);
+                      }
+                    }}
+                    className="appearance-none bg-white border-2 border-black rounded px-3 py-1 pr-8 text-sm font-bold shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
+                  >
+                    <option value="">Select a scenario</option>
+                    {DEMO_CONFIG.SCENARIOS.map((scenario, index) => (
+                      <option key={index} value={scenario.name}>
+                        {scenario.name}
+                      </option>
+                    ))}
+                  </select>
+                  <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-700">
+                    <svg className="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
+                      <path d="M7 7l3-3 3 3m0 6l-3 3-3-3"/>
+                    </svg>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex items-center space-x-2">
+                <button
+                  onClick={() => setRunTour(true)}
+                  className="text-xs bg-white hover:bg-gray-100 text-gray-800 font-semibold py-1 px-2 border-2 border-black rounded shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
+                >
+                  Start Tour
+                </button>
+                <button
+                  onClick={() => setShowDemoControls(false)}
+                  className="text-xs bg-white hover:bg-gray-100 text-gray-800 font-semibold py-1 px-2 border-2 border-black rounded shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
+                >
+                  Hide Controls
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Main Dashboard */}
+      <main className="flex flex-col h-full w-full pt-14 sm:pt-4">
+        {/* Top Navigation */}
+        <div className="bg-white border-b border-gray-200 py-3 px-4 flex items-center justify-between">
+          <div className="flex items-center space-x-4">
+            <button 
+              onClick={onBackToLanding}
+              className="text-gray-700 hover:text-black flex items-center"
+            >
+              <ArrowLeft className="w-4 h-4 mr-1" /> 
+              <span className="hidden sm:inline text-sm font-semibold">Back to Landing</span>
+            </button>
+            
+            <div className="flex items-center space-x-1">
+              <img src={genesisLogo} alt="GenesisNet Logo" className="h-6" />
+              <span className="font-bold text-lg">GenesisNet</span>
+            </div>
+          </div>
+          
+          <div className="flex items-center space-x-3">
+            <ModeToggle 
+              currentMode={operationMode} 
+              onModeChange={handleModeChange}
+            />
+            
+            <div className="relative">
+              <button
+                className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center hover:bg-gray-300 focus:outline-none"
+                onClick={() => {}}
+              >
+                <User className="w-4 h-4 text-gray-700" />
+              </button>
+            </div>
+          </div>
+        </div>
+        
+        {/* Dashboard Content */}
+        <div className="flex flex-1 overflow-hidden">
+          {/* Main Content */}
+          <div className="flex-1 overflow-y-auto p-4 space-y-4">
+            {/* Network Graph & Metrics Row */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+              {/* Network Visualization */}
+              <div className="lg:col-span-2 bg-white rounded-lg shadow-md overflow-hidden border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+                <div className="p-4 border-b border-gray-200 bg-gray-50 flex justify-between items-center">
+                  <div className="flex items-center">
+                    <Network className="mr-2 h-5 w-5 text-indigo-600" />
+                    <h2 className="text-lg font-bold">Network Visualization</h2>
+                  </div>
+                  <div className="flex space-x-2">
+                    <button 
+                      onClick={handleScanNetwork}
+                      disabled={isScanning}
+                      className={`py-1 px-3 rounded text-xs font-bold border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] ${
+                        isScanning 
+                          ? 'bg-gray-300 text-gray-700 cursor-not-allowed' 
+                          : 'bg-indigo-500 text-white hover:bg-indigo-600'
+                      }`}
+                    >
+                      {isScanning ? 'Scanning...' : 'Scan Network'}
+                    </button>
+                    <button 
+                      className="py-1 px-2 rounded text-xs font-bold border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] bg-gray-100 hover:bg-gray-200"
+                      onClick={() => {}}
+                    >
+                      <RefreshCw className="h-3 w-3" />
+                    </button>
+                  </div>
+                </div>
+                <div className="p-0 h-96" data-tour="node-visualization">
+                  <NetworkVisualization 
+                    nodes={networkData.nodes}
+                    connections={networkData.connections}
+                    isScanning={isScanning}
+                  />
+                </div>
+              </div>
+              
+              {/* Metrics Panel */}
+              <div className="bg-white rounded-lg shadow-md overflow-hidden border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+                <div className="p-4 border-b border-gray-200 bg-gray-50 flex justify-between items-center">
+                  <div className="flex items-center">
+                    <BarChart3 className="mr-2 h-5 w-5 text-indigo-600" />
+                    <h2 className="text-lg font-bold">Network Metrics</h2>
+                  </div>
+                  <button 
+                    className="py-1 px-2 rounded text-xs font-bold border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] bg-gray-100 hover:bg-gray-200"
+                    onClick={handleRefresh}
+                  >
+                    <RefreshCw className="h-3 w-3" />
+                  </button>
+                </div>
+                <div className="p-4 h-96 overflow-auto" data-tour="metrics-display">
+                  <MetricsDisplay metrics={metrics} />
+                </div>
+              </div>
+            </div>
+            
+            {/* Control Panel & Logs Row */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+              {/* Control Panel */}
+              <div className="bg-white rounded-lg shadow-md overflow-hidden border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+                <div className="p-4 border-b border-gray-200 bg-gray-50 flex justify-between items-center">
+                  <div className="flex items-center">
+                    <Settings className="mr-2 h-5 w-5 text-indigo-600" />
+                    <h2 className="text-lg font-bold">Agent Controls</h2>
+                  </div>
+                  <div>
+                    <span className={`px-2 py-1 rounded-full text-xs font-semibold ${
+                      connectionStatus === 'connected' ? 'bg-green-100 text-green-800' :
+                      connectionStatus === 'connecting' ? 'bg-yellow-100 text-yellow-800' :
+                      'bg-red-100 text-red-800'
+                    }`}>
+                      {connectionStatus === 'connected' ? (
+                        <span className="flex items-center">
+                          <Wifi className="h-3 w-3 mr-1" />
+                          Connected
+                        </span>
+                      ) : connectionStatus === 'connecting' ? (
+                        <span className="flex items-center">
+                          <Wifi className="h-3 w-3 mr-1" />
+                          Connecting
+                        </span>
+                      ) : (
+                        <span className="flex items-center">
+                          <WifiOff className="h-3 w-3 mr-1" />
+                          Disconnected
+                        </span>
+                      )}
+                    </span>
+                  </div>
+                </div>
+                <div className="p-4" data-tour="agent-controls">
+                  <ControlPanel 
+                    searchCriteria={searchCriteria}
+                    onInputChange={handleInputChange}
+                    onStartAgent={handleStartAgent}
+                    onNegotiate={handleNegotiate}
+                    onDownload={downloadData}
+                    isSearching={isSearching}
+                    isNegotiating={isNegotiating}
+                    searchResults={searchResults}
+                    selectedProvider={selectedProvider}
+                    negotiationStatus={negotiationStatus}
+                    walletBalance={walletBalance}
+                    dataDeliveries={dataDeliveries}
+                    connectionStatus={connectionStatus}
+                  />
+                </div>
+              </div>
+              
+              {/* Logs Panel */}
+              <div className="lg:col-span-2 bg-white rounded-lg shadow-md overflow-hidden border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+                <div className="p-4 border-b border-gray-200 bg-gray-50 flex justify-between items-center">
+                  <div className="flex items-center">
+                    <Activity className="mr-2 h-5 w-5 text-indigo-600" />
+                    <h2 className="text-lg font-bold">Real-time Activity Log</h2>
+                  </div>
+                  <div className="flex space-x-2">
+                    <button 
+                      className="py-1 px-3 rounded text-xs font-bold border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] bg-red-500 text-white hover:bg-red-600"
+                      onClick={clearLogs}
+                    >
+                      Clear
+                    </button>
+                  </div>
+                </div>
+                <div className="p-4 h-96 overflow-auto" data-tour="log-panel">
+                  <RealtimeLog logs={logs} />
+                </div>
+              </div>
+            </div>
+            
+            {/* Tabs for additional content */}
+            <div className="bg-white rounded-lg shadow-md overflow-hidden border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+              <div className="border-b border-gray-200">
+                <nav className="flex">
+                  <button
+                    onClick={() => setActiveTab('data')}
+                    className={`px-4 py-3 text-sm font-medium ${
+                      activeTab === 'data'
+                        ? 'bg-indigo-500 text-white border-b-2 border-indigo-700'
+                        : 'text-gray-600 hover:text-gray-800 hover:bg-gray-50'
+                    }`}
+                  >
+                    <Database className="inline-block w-4 h-4 mr-1" />
+                    Data Center
+                  </button>
+                  <button
+                    onClick={() => setActiveTab('transactions')}
+                    className={`px-4 py-3 text-sm font-medium ${
+                      activeTab === 'transactions'
+                        ? 'bg-indigo-500 text-white border-b-2 border-indigo-700'
+                        : 'text-gray-600 hover:text-gray-800 hover:bg-gray-50'
+                    }`}
+                  >
+                    <ShoppingCart className="inline-block w-4 h-4 mr-1" />
+                    Transactions
+                  </button>
+                  <button
+                    onClick={() => setActiveTab('notifications')}
+                    className={`px-4 py-3 text-sm font-medium ${
+                      activeTab === 'notifications'
+                        ? 'bg-indigo-500 text-white border-b-2 border-indigo-700'
+                        : 'text-gray-600 hover:text-gray-800 hover:bg-gray-50'
+                    }`}
+                  >
+                    <Bell className="inline-block w-4 h-4 mr-1" />
+                    Notifications
+                  </button>
+                </nav>
+              </div>
+              
+              <div className="p-4">
+                {activeTab === 'data' && <DataCenter dataDeliveries={dataDeliveries} activeDownloads={activeDownloads} />}
+                {activeTab === 'transactions' && <TransactionHistory transactions={completedDeliveries} />}
+                {activeTab === 'notifications' && <NotificationCenter />}
+              </div>
+            </div>
+          </div>
+          
+          {/* Right Sidebar - Wallet & Payment Section */}
+          <aside className="hidden lg:block w-72 bg-gray-50 border-l border-gray-200 overflow-y-auto">
+            <div className="p-5 flex flex-col gap-6">
+              {/* Wallet Balance Card */}
+              <div className="bg-white border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] rounded-lg p-5">
+                {/* Wallet Header */}
+                <div className="flex items-center justify-between mb-2">
+                  <h3 className="text-lg font-bold text-gray-800 flex items-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2 text-indigo-600" viewBox="0 0 20 20" fill="currentColor">
+                      <path d="M4 4a2 2 0 00-2 2v1h16V6a2 2 0 00-2-2H4z" />
+                      <path fillRule="evenodd" d="M18 9H2v5a2 2 0 002 2h12a2 2 0 002-2V9zM4 13a1 1 0 011-1h1a1 1 0 110 2H5a1 1 0 01-1-1zm5-1a1 1 0 100 2h1a1 1 0 100-2H9z" clipRule="evenodd" />
+                    </svg>
+                    Wallet
+                  </h3>
+                  <button 
+                    onClick={() => setShowWalletHistory(!showWalletHistory)}
+                    className="text-xs bg-indigo-100 text-indigo-700 hover:bg-indigo-200 px-3 py-1 rounded-full font-medium transition-all duration-200"
+                  >
+                    {showWalletHistory ? 'Hide History' : 'Show History'}
+                  </button>
+                </div>
+                
+                {/* Balance Details */}
+                <div className="mb-4">
+                  <div className="flex items-baseline justify-between">
+                    <span className="text-xs font-medium text-gray-500">Current Balance</span>
+                    <span className="text-xs bg-green-100 text-green-800 px-2 py-0.5 rounded-full font-bold">ICP Network</span>
+                  </div>
+                  <div className="text-3xl font-black">{walletBalance.toFixed(2)} ICP</div>
+                  <div className="text-xs text-gray-500 mb-4">≈ ${(walletBalance * 25).toFixed(2)} USD</div>
+                </div>
+                
+                {/* Wallet Actions */}
+                <div className="flex space-x-3">
+                  <button className="flex-1 py-2 bg-indigo-500 hover:bg-indigo-600 text-white text-xs font-bold rounded-md border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all duration-200">
+                    Add Funds
+                  </button>
+                  <button className="flex-1 py-2 bg-white hover:bg-gray-50 text-gray-800 text-xs font-bold rounded-md border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all duration-200">
+                    Transfer
+                  </button>
+                </div>
+              </div>
+              
+              {/* Wallet Transaction History Card */}
+              {showWalletHistory && (
+                <div className="bg-white border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] rounded-lg p-4">
+                  <h4 className="text-sm font-black mb-3 flex items-center">
+                    {/* ...existing icon and title... */}
+                  </h4>
+                  <div className="space-y-3">
+                    {/* ...existing paymentHistory mapping... */}
+                  </div>
+                </div>
+              )}
+            </div>  {/* close sidebar content container */}
+          </aside>
+          </aside>
+        </div>
+      </main>
+
+      {/* Demo Controls Overlay */}
+      {showDemoControls && DEMO_CONFIG.DEMO_MODE && (
+        <DemoControlPanel 
+          onClose={() => setShowDemoControls(false)}
+          onScenarioStart={handleScenarioStart}
+          currentScenario={currentScenario}
+        />
+      )}
+    </div>
+  );
+}
+
+export default Dashboard;

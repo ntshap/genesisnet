@@ -17,7 +17,7 @@ const generateNetworkMetrics = () => ({
   successRate: (Math.random() * 0.1 + 0.9).toFixed(3),
   networkLatency: Math.floor(Math.random() * 50) + 30,
   activeProviders: Math.floor(Math.random() * 8) + 12,
-  averagePricePerDataUnit: Math.random() * 0.5 + 0.05,
+  averagePricePerDataUnit: Math.random() * 1.5 + 0.25, // Increased range to make values more visible
   cpuUsage: Math.floor(Math.random() * 30) + 50,
   memoryUsage: Math.floor(Math.random() * 20) + 40,
   networkIO: Math.floor(Math.random() * 40) + 60

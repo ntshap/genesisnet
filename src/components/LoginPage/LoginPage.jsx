@@ -10,7 +10,7 @@ import {
 } from 'lucide-react';
 import genesisLogo from '../../assets/genesisnet-logo.png';
 
-const LoginPage = ({ onLogin, onBackToLanding }) => {
+const LoginPage = ({ onLogin, onBackToLanding, onCreateAccount }) => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -37,14 +37,30 @@ const LoginPage = ({ onLogin, onBackToLanding }) => {
     
     // Simulate API call with timeout
     setTimeout(() => {
-      if (username === validCredentials.username && password === validCredentials.password) {
+      // Check with the stored users in local storage
+      const savedUsers = localStorage.getItem('genesisnet-registered-users');
+      const registeredUsers = savedUsers ? JSON.parse(savedUsers) : [{ username: 'admin', password: 'genesis123' }];
+      
+      const foundUser = registeredUsers.find(user => 
+        user.username === username && user.password === password
+      );
+      
+      if (foundUser) {
         // Store user info in localStorage if rememberMe is checked
         if (rememberMe) {
-          localStorage.setItem('genesisnet-user', JSON.stringify({ username }));
+          localStorage.setItem('genesisnet-user', JSON.stringify({ 
+            username: foundUser.username,
+            email: foundUser.email,
+            userId: foundUser.userId
+          }));
         }
         
         setIsLoading(false);
-        onLogin({ username });
+        onLogin({ 
+          username: foundUser.username,
+          email: foundUser.email,
+          userId: foundUser.userId 
+        });
       } else {
         setIsLoading(false);
         setError('Invalid username or password');
@@ -207,9 +223,9 @@ const LoginPage = ({ onLogin, onBackToLanding }) => {
           <div className="mt-6 text-center">
             <p className="text-sm text-black font-bold">
               Don't have an account?{' '}
-              <a href="#" className="text-purple-600 font-black hover:underline">
+              <button onClick={() => onCreateAccount()} className="text-purple-600 font-black hover:underline">
                 Create an account
-              </a>
+              </button>
             </p>
           </div>
         </div>

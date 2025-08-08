@@ -1,0 +1,273 @@
+import React, { useState, useEffect, useCallback } from 'react';
+import Joyride from 'react-joyride';
+import { useAuth } from './context/AuthContext.jsx';
+import { useNotifications } from './context/NotificationContext.jsx';
+import { 
+  Globe, 
+  Users, 
+  BarChart3, 
+  ShoppingCart, 
+  User, 
+  Search, 
+  Handshake, 
+  RefreshCw,
+  Settings,
+  Zap,
+  Activity,
+  Wifi,
+  WifiOff,
+  Network,
+  Database,
+  Shield,
+  Target,
+  Layers,
+  Cpu,
+  Server,
+  Monitor,
+  Home,
+  ArrowLeft,
+  TrendingUp,
+  TrendingDown,
+  PieChart,
+  LineChart,
+  Download,
+  Package,
+  FileCheck,
+  HelpCircle,
+  Clock
+} from 'lucide-react';
+import ControlPanel from './components/ControlPanel/ControlPanel_neubrutalism';
+import RealtimeLog from './components/RealtimeLog/RealtimeLog_neubrutalism';
+import MetricsDisplay from './components/MetricsDisplay/MetricsDisplay_neubrutalism';
+import NetworkVisualization from './components/NetworkVisualization/NetworkVisualization_neubrutalism';
+import DataCenter from './components/DataCenter/DataCenter';
+import TransactionHistory from './components/TransactionHistory/TransactionHistory';
+import NotificationCenter from './components/NotificationCenter/NotificationCenter';
+import ModeToggle from './components/shared/ModeToggle';
+import genesisLogo from './assets/genesisnet-logo.png';
+import DemoControlPanel from './components/DemoControlPanel';
+import useInteractiveDemo from './hooks/useInteractiveDemo';
+import { DEMO_CONFIG } from './utils/demoConfig';
+
+function Dashboard({ onBackToLanding }) {
+  console.log('Dashboard: Component mounting/rendering');
+  
+  // Get authentication info and logout function
+  const { user, logout } = useAuth();
+  
+  // Access notifications system
+  const { addNotification } = useNotifications();
+  
+  const [searchCriteria, setSearchCriteria] = useState({
+    dataType: 'weather',
+    location: 'Global',
+    timeRange: '2024-01-01 to 2024-12-31',
+    maxPrice: '100',
+    minReputation: '7.0'
+  });
+  
+  const [showDemoControls, setShowDemoControls] = useState(DEMO_CONFIG.DEMO_MODE);
+  const [runTour, setRunTour] = useState(false);
+  const [currentScenario, setCurrentScenario] = useState(null);
+  const [autoStarted, setAutoStarted] = useState(false);
+  const [activeTab, setActiveTab] = useState('network'); // Add active tab state
+  const [showWalletHistory, setShowWalletHistory] = useState(false); // Add wallet history state
+  const [isScanning, setIsScanning] = useState(false); // Add scanning state
+  const [operationMode, setOperationMode] = useState('training'); // Training or Live mode
+
+  // Use the enhanced interactive demo hook
+  const {
+    logs = [],
+    metrics = { totalTransactions: 0, successRate: 0, averageLatency: 0, activeNodes: 0, totalVolume: 0, pendingRequests: 0 },
+    networkData = { nodes: [], connections: [] },
+    searchResults = [],
+    activeConnections = [],
+    transactionPool = [],
+    dataDeliveries = [],
+    activeDownloads = [],
+    completedDeliveries = [],
+    walletBalance = 0,
+    paymentHistory = [],
+    pendingPayments = [],
+    fundingHistory = [],
+    agentStatus,
+    isSearching = false,
+    isNegotiating = false,
+    selectedProvider = null,
+    negotiationStatus = null,
+    lastUpdate,
+    startSearch,
+    negotiate,
+    downloadData,
+    refresh,
+    addLog,
+    clearLogs,
+    isConnectedToICP = false,
+    isMockMode = true,
+    connectionStatus = 'connecting',
+    isLoading = false,
+    error = null,
+    clearError
+  } = useInteractiveDemo(searchCriteria);
+
+  const handleInputChange = useCallback((e) => {
+    const { name, value } = e.target;
+    setSearchCriteria((prevCriteria) => ({
+      ...prevCriteria,
+      [name]: value,
+    }));
+  }, []);
+
+  const handleStartAgent = useCallback(async () => {
+    try {
+      if (startSearch && typeof startSearch === 'function') {
+        await startSearch(searchCriteria);
+      }
+    } catch (error) {
+      console.error('Failed to start agent:', error);
+    }
+  }, [startSearch, searchCriteria]);
+
+  const handleNegotiate = useCallback(async (provider) => {
+    try {
+      if (negotiate && typeof negotiate === 'function') {
+        if (provider) {
+          await negotiate(provider);
+        } else if (searchResults && searchResults.length > 0) {
+          // Use first available provider if no specific provider selected
+          await negotiate(searchResults[0]);
+        }
+      }
+    } catch (error) {
+      console.error('Failed to negotiate:', error);
+    }
+  }, [negotiate, searchResults]);
+
+  const handleRefresh = useCallback(() => {
+    try {
+      if (refresh && typeof refresh === 'function') {
+        refresh();
+      }
+    } catch (error) {
+      console.error('Failed to refresh:', error);
+    }
+  }, [refresh]);
+
+  // Demo scenario handling
+  const handleScenarioStart = useCallback((scenario) => {
+    setCurrentScenario(scenario);
+    
+    // Update search criteria based on scenario
+    if (scenario && scenario.searchParams) {
+      setSearchCriteria({
+        dataType: scenario.searchParams.dataType || 'weather',
+        location: scenario.searchParams.location || 'Global',
+        timeRange: scenario.searchParams.timeRange || '2024-01-01 to 2024-12-31',
+        maxPrice: scenario.searchParams.maxPrice || '100',
+        minReputation: scenario.searchParams.minReputation || '7.0'
+      });
+      
+      // Auto-start the agent if the scenario requires it
+      if (scenario.autoStart) {
+        setTimeout(() => {
+          handleStartAgent();
+          setAutoStarted(true);
+        }, 1000);
+      }
+    }
+  }, [setCurrentScenario, setSearchCriteria, handleStartAgent, setAutoStarted]);
+
+  const handleScanNetwork = () => {
+    setIsScanning(true);
+    
+    // Simulate network scanning
+    setTimeout(() => {
+      setIsScanning(false);
+      handleRefresh();
+      
+      if (addLog) {
+        addLog({
+          message: "Network scan complete. Found 24 active nodes.",
+          type: "info",
+          timestamp: new Date().toISOString()
+        });
+      }
+    }, 2500);
+  };
+
+  // Auto-start demo scenario on first load
+  useEffect(() => {
+    if (DEMO_CONFIG.DEMO_MODE && DEMO_CONFIG.AUTO_START && !autoStarted) {
+      const demoScenario = DEMO_CONFIG.DEFAULT_SCENARIO;
+      if (demoScenario) {
+        setTimeout(() => {
+          handleScenarioStart(demoScenario);
+        }, 2000);
+      }
+    }
+  }, [autoStarted, handleScenarioStart]);
+
+  // Handle mode change
+  const handleModeChange = (mode) => {
+    setOperationMode(mode);
+    addNotification({
+      title: 'Mode Changed',
+      message: `Switched to ${mode === 'training' ? 'Training' : 'Live'} mode.`,
+      severity: 'info',
+      duration: 3000,
+      type: 'toast'
+    });
+  };
+
+  // Add notification on transaction completion or data download
+  useEffect(() => {
+    if (dataDeliveries && dataDeliveries.length > 0) {
+      const latestDelivery = dataDeliveries[dataDeliveries.length - 1];
+      addNotification({
+        title: 'Data Transaction Complete',
+        message: `${latestDelivery.name} has been successfully acquired.`,
+        severity: 'success',
+        category: 'transaction',
+        action: {
+          label: 'View Data',
+          onClick: () => setActiveTab('data')
+        }
+      });
+    }
+  }, [dataDeliveries, addNotification]);
+
+  // Handle keyboard shortcuts
+  useEffect(() => {
+    const handleKeyPress = (e) => {
+      // Only enable keyboard shortcuts when demo controls are active
+      if (showDemoControls) {
+        // Shift + Alt + 1-9 for scenarios
+        if (e.shiftKey && e.altKey && e.key >= '1' && e.key <= '9') {
+          const scenarioIndex = parseInt(e.key) - 1;
+          if (scenarioIndex < DEMO_CONFIG.SCENARIOS.length) {
+            console.log(`Dashboard: Keyboard shortcut - loading scenario ${scenarioIndex + 1}`);
+            setCurrentScenario(DEMO_CONFIG.SCENARIOS[scenarioIndex]);
+            handleScenarioStart(DEMO_CONFIG.SCENARIOS[scenarioIndex]);
+          }
+        }
+        // Shift + Alt + R for refresh
+        else if (e.shiftKey && e.altKey && e.key === 'r') {
+          console.log('Dashboard: Keyboard shortcut - refresh');
+          handleRefresh();
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyPress);
+    return () => window.removeEventListener('keydown', handleKeyPress);
+  }, [showDemoControls, currentScenario, handleRefresh, handleScenarioStart]);
+
+  return (
+    <div className="dashboard">
+      <h1>Dashboard Component</h1>
+      {/* Rest of the component implementation */}
+    </div>
+  );
+}
+
+export default Dashboard;

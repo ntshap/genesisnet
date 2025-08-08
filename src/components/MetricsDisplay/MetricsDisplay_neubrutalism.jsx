@@ -49,8 +49,8 @@ const MetricsDisplay = ({ metrics, lastUpdate, isLoading }) => {
     
     switch (key) {
       case 'averagePricePerDataUnit':
-        // Round price to nearest whole number
-        return `${Math.round(value)} ICP`;
+        // Format ICP price with 3 decimal places to show smaller values clearly
+        return `${value.toFixed(3)} ICP`;
       case 'networkLatency':
         return `${Math.round(value)}ms`;
       case 'networkUtilization':
@@ -166,7 +166,7 @@ const MetricsDisplay = ({ metrics, lastUpdate, isLoading }) => {
       {/* Footer */}
       <div className="text-center pt-2 border-t-2 border-black">
         <div className="text-xs text-black font-bold">
-          Last updated: {lastUpdate ? lastUpdate.toLocaleTimeString() : 'Never'}
+          Last updated: {lastUpdate ? lastUpdate.toLocaleString(undefined, { timeStyle: 'medium', dateStyle: 'short' }) : 'Never'}
         </div>
       </div>
     </div>

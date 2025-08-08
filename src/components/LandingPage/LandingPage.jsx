@@ -154,7 +154,7 @@ const LandingPage = ({ onEnterDashboard }) => {
   }, []);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-yellow-50 via-white to-yellow-100 text-black relative overflow-hidden">
+    <div className="min-h-screen pt-28 bg-gradient-to-br from-yellow-50 via-white to-yellow-100 text-black relative overflow-hidden">
       {/* Clean Decorative Background Elements */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none">
         {/* Subtle geometric shapes with softer colors */}
@@ -171,8 +171,8 @@ const LandingPage = ({ onEnterDashboard }) => {
         }}></div>
       </div>
 
-      {/* Navigation */}
-      <nav className="relative z-50 bg-white border-b-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]">
+      {/* Navigation - made sticky */}
+      <nav className="fixed top-0 left-0 right-0 z-50 bg-white border-b-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]">
         <div className="px-6 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
@@ -476,7 +476,7 @@ const LandingPage = ({ onEnterDashboard }) => {
       <footer id="about" className="relative z-10 bg-black text-white py-6 px-6 lg:px-12">
         <div className="max-w-7xl mx-auto text-center">
           <p className="text-sm text-gray-400 font-bold">
-            © 2024 GenesisNet
+            © 2025 GenesisNet
           </p>
         </div>
       </footer>

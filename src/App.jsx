@@ -1,12 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import LandingPage from './components/LandingPage';
 import LoginPage from './components/LoginPage';
+import RegisterPage from './components/RegisterPage';
 import Dashboard from './Dashboard';
 import { AuthProvider, useAuth } from './context/AuthContext.jsx';
+import { NotificationProvider } from './context/NotificationContext.jsx';
 
 function AppContent() {
   // Get auth state from context
-  const { isAuthenticated, login, logout } = useAuth();
+  const { isAuthenticated, login, logout, register } = useAuth();
   
   // State to track if we should show landing page or login/dashboard
   const [showDashboard, setShowDashboard] = useState(() => {
@@ -20,8 +22,9 @@ function AppContent() {
     }
   });
   
-  // State to control showing login page
+  // State to control showing login page or register page
   const [showLogin, setShowLogin] = useState(false);
+  const [showRegister, setShowRegister] = useState(false);
 
   // Save dashboard state to localStorage whenever it changes
   useEffect(() => {
@@ -47,6 +50,7 @@ function AppContent() {
     console.log('App: Going back to landing page');
     setShowDashboard(false);
     setShowLogin(false);
+    setShowRegister(false);
   };
   
   const handleLogin = (userData) => {
@@ -54,6 +58,26 @@ function AppContent() {
     login(userData);
     setShowDashboard(true);
     setShowLogin(false);
+    setShowRegister(false);
+  };
+
+  const handleCreateAccount = () => {
+    console.log('App: Showing registration page');
+    setShowLogin(false);
+    setShowRegister(true);
+  };
+
+  const handleRegister = (userData) => {
+    console.log('App: Registering user:', userData);
+    register(userData);
+    setShowDashboard(true);
+    setShowRegister(false);
+  };
+
+  const handleBackToLogin = () => {
+    console.log('App: Going back to login page');
+    setShowRegister(false);
+    setShowLogin(true);
   };
 
   return (
@@ -61,7 +85,9 @@ function AppContent() {
       {showDashboard ? (
         <Dashboard onBackToLanding={handleBackToLanding} />
       ) : showLogin ? (
-        <LoginPage onLogin={handleLogin} onBackToLanding={handleBackToLanding} />
+        <LoginPage onLogin={handleLogin} onBackToLanding={handleBackToLanding} onCreateAccount={handleCreateAccount} />
+      ) : showRegister ? (
+        <RegisterPage onRegister={handleRegister} onBackToLogin={handleBackToLogin} />
       ) : (
         <LandingPage onEnterDashboard={handleEnterDashboard} />
       )}
@@ -73,7 +99,9 @@ function AppContent() {
 function App() {
   return (
     <AuthProvider>
-      <AppContent />
+      <NotificationProvider>
+        <AppContent />
+      </NotificationProvider>
     </AuthProvider>
   );
 }
