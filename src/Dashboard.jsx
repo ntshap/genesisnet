@@ -35,6 +35,7 @@ import {
   HelpCircle
 } from 'lucide-react';
 import ControlPanel from './components/ControlPanel/ControlPanel_neubrutalism';
+import ModeToggle from './components/shared/ModeToggle';
 import RealtimeLog from './components/RealtimeLog/RealtimeLog_neubrutalism';
 import MetricsDisplay from './components/MetricsDisplay/MetricsDisplay_neubrutalism';
 import NetworkVisualization from './components/NetworkVisualization/NetworkVisualization_neubrutalism';
@@ -58,6 +59,14 @@ function Dashboard({ onBackToLanding }) {
   });
   
   const [showDemoControls, setShowDemoControls] = useState(DEMO_CONFIG.DEMO_MODE);
+  // Mode state for Training/Live
+  const [mode, setMode] = useState('training');
+
+  // Mode change handler
+  const handleModeChange = (newMode) => {
+    setMode(newMode);
+    addLog && addLog('mode', `Mode changed to ${newMode === 'training' ? 'Training' : 'Live'} Mode`, 'info', 'mode-toggle');
+  };
   const [runTour, setRunTour] = useState(false);
   const [currentScenario, setCurrentScenario] = useState(null);
   const [autoStarted, setAutoStarted] = useState(false);
@@ -498,7 +507,11 @@ function Dashboard({ onBackToLanding }) {
                   <BarChart3 size={16} />
                   <span>Analytics</span>
                 </button>
-              </nav>
+                </nav>
+                {/* Mode Toggle - right side of header */}
+              <div className="ml-8 flex items-center">
+                <ModeToggle mode={mode} onChange={handleModeChange} />
+              </div>
             </div>
             
             {/* Right Controls */}
