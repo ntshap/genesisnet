@@ -41,6 +41,8 @@ function App() {
   });
   
   const [showDemoControls, setShowDemoControls] = useState(DEMO_CONFIG.DEMO_MODE);
+  // Mobile view tab: 'controls', 'network', 'metrics'
+  const [mobileTab, setMobileTab] = useState('network');
   const [currentScenario, setCurrentScenario] = useState(null);
   const [autoStarted, setAutoStarted] = useState(false);
 
@@ -161,7 +163,7 @@ function App() {
   }, [showDemoControls, currentScenario]);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-slate-900 to-black text-white relative overflow-hidden">
+  <div className="min-h-screen bg-gradient-to-br from-gray-900 via-slate-900 to-black text-white relative overflow-hidden">
       {/* Animated Background Grid */}
       <div className="absolute inset-0 opacity-10">
         <div className="absolute inset-0 bg-grid-pattern animate-pulse"></div>
@@ -191,7 +193,13 @@ function App() {
                   <p className="text-xs text-cyan-400/60 font-mono">v2.0</p>
                 </div>
               </div>
-              
+              {/* Hamburger menu for mobile */}
+              <div className="lg:hidden ml-4">
+                <button onClick={() => setShowDemoControls(!showDemoControls)} className="p-2 bg-cyan-400 rounded-lg">
+                  <span className="sr-only">Open Menu</span>
+                  <svg width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+                </button>
+              </div>
               {/* Navigation Menu */}
               <nav className="hidden lg:flex items-center space-x-1">
                 <button className="flex items-center space-x-2 px-3 py-2 rounded-lg bg-cyan-400/10 text-cyan-400 text-sm font-medium border border-cyan-400/20 hover:bg-cyan-400/20 transition-all">
@@ -208,7 +216,6 @@ function App() {
                 </button>
               </nav>
             </div>
-            
             {/* Right Controls */}
             <div className="flex items-center space-x-3">
               {/* Status Indicator */}
@@ -219,7 +226,6 @@ function App() {
                 }`}></div>
                 <span className="text-xs text-cyan-400 font-mono">{agentStatus}</span>
               </div>
-              
               {/* Demo Controls */}
               {DEMO_CONFIG.DEMO_MODE && (
                 <button
@@ -235,9 +241,9 @@ function App() {
       </header>
 
       {/* Main Layout - 3 Column Dashboard */}
-      <main className="flex h-[calc(100vh-64px)]">
+  <main className="flex flex-col md:flex-row h-auto md:h-[calc(100vh-64px)] relative">
         {/* Left Sidebar - Control Panel & Navigation */}
-        <aside className="w-72 bg-slate-900/95 backdrop-blur-xl border-r border-cyan-400/20 overflow-y-auto scrollbar-thin scrollbar-thumb-cyan-400/30">
+  <aside className={`w-full md:w-72 bg-slate-900/95 backdrop-blur-xl border-r border-cyan-400/20 overflow-y-auto scrollbar-thin scrollbar-thumb-cyan-400/30 ${mobileTab==='controls' ? 'block' : 'hidden'} md:block`}>
           <div className="p-4 space-y-4">
             {/* Network Control Header */}
             <div className="border-b border-cyan-400/20 pb-3">
@@ -335,9 +341,9 @@ function App() {
         </aside>
 
         {/* Center - Network Visualization */}
-        <section className="flex-1 bg-slate-900/60 relative">
-          <div className="h-full p-4">
-            <div className="h-full bg-slate-800/40 border border-cyan-400/20 rounded-lg overflow-hidden relative">
+  <section className={`flex-1 bg-slate-900/60 relative w-full ${mobileTab==='network' ? 'block' : 'hidden'} md:block`}>
+          <div className="h-auto md:h-full p-2 md:p-4">
+            <div className="h-auto md:h-full bg-slate-800/40 border border-cyan-400/20 rounded-lg overflow-hidden relative">
               {/* Visualization Header */}
               <div className="absolute top-0 left-0 right-0 z-10 bg-slate-900/90 backdrop-blur-sm border-b border-cyan-400/20 p-3">
                 <div className="flex items-center justify-between">
@@ -363,20 +369,27 @@ function App() {
               </div>
               
               {/* Network Visualization Component */}
-              <div className="pt-14 h-full">
-                <NetworkVisualization
-                  agentStatus={agentStatus}
-                  networkData={networkData}
-                  onNegotiate={handleNegotiate}
-                  isLoading={isLoading}
-                />
+              <div className="pt-14 h-auto md:h-full">
+                <div className="w-full h-[60vh] md:h-full flex items-center justify-center">
+                  <NetworkVisualization
+                    agentStatus={agentStatus}
+                    networkData={networkData}
+                    onNegotiate={handleNegotiate}
+                    isLoading={isLoading}
+                  />
+                </div>
               </div>
             </div>
           </div>
         </section>
 
-        {/* Right Sidebar - Metrics & Logs */}
-        <aside className="w-80 bg-slate-900/95 backdrop-blur-xl border-l border-cyan-400/20 overflow-y-auto scrollbar-thin scrollbar-thumb-cyan-400/30">
+  {/* Right Sidebar - Metrics & Logs */}
+  <aside className={`w-full md:w-80 bg-slate-900/95 backdrop-blur-xl border-l border-cyan-400/20 overflow-y-auto scrollbar-thin scrollbar-thumb-cyan-400/30 ${mobileTab==='metrics' ? 'block' : 'hidden'} md:block`}>
+        {/* Mobile Drawer for Sidebar */}
+        <div className="fixed bottom-0 left-0 right-0 z-50 md:hidden flex bg-slate-900 border-t border-cyan-400/20">
+          <button className="flex-1 py-3 text-xs font-bold text-cyan-400" onClick={() => window.scrollTo({top:0,behavior:'smooth'})}>Network</button>
+          <button className="flex-1 py-3 text-xs font-bold text-emerald-400" onClick={() => window.scrollTo({top:document.body.scrollHeight,behavior:'smooth'})}>Metrics</button>
+        </div>
           <div className="p-4 space-y-4">
             {/* System Overview Header */}
             <div className="border-b border-cyan-400/20 pb-3">
@@ -492,6 +505,12 @@ function App() {
           </div>
         </aside>
       </main>
+      {/* Mobile Bottom Navigation */}
+      <div className="fixed bottom-0 left-0 right-0 z-50 bg-slate-900/90 flex md:hidden">
+        <button onClick={() => setMobileTab('controls')} className={`flex-1 py-2 text-center ${mobileTab==='controls' ? 'bg-cyan-600 text-white' : 'text-cyan-400'}`}>Controls</button>
+        <button onClick={() => setMobileTab('network')} className={`flex-1 py-2 text-center ${mobileTab==='network' ? 'bg-cyan-600 text-white' : 'text-cyan-400'}`}>Network</button>
+        <button onClick={() => setMobileTab('metrics')} className={`flex-1 py-2 text-center ${mobileTab==='metrics' ? 'bg-cyan-600 text-white' : 'text-cyan-400'}`}>Metrics</button>
+      </div>
 
       {/* Demo Controls Overlay */}
       {showDemoControls && DEMO_CONFIG.DEMO_MODE && (
@@ -507,7 +526,7 @@ function App() {
         <div className="flex justify-between items-center text-xs font-mono">
           <div className="flex items-center space-x-4">
             <span className="text-slate-400">STATUS: <span className="text-emerald-400">{agentStatus?.toUpperCase()}</span></span>
-            <span className="text-slate-400">MODE: <span className="text-yellow-400">{isMockMode ? 'DEMO' : 'LIVE'}</span></span>
+            <span className="text-slate-400">MODE: <span className="text-yellow-400">{isMockMode ? 'TRAINING' : 'LIVE'}</span></span>
             {lastUpdate && (
               <span className="text-slate-400">UPDATED: <span className="text-cyan-400">{lastUpdate.toLocaleTimeString()}</span></span>
             )}

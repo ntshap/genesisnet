@@ -268,12 +268,13 @@ const LandingPage = ({ onEnterDashboard }) => {
               onClick={onEnterDashboard}
               className="group flex items-center px-10 py-5 bg-lime-300 border-4 border-black rounded-lg font-black text-xl shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] hover:translate-x-2 hover:translate-y-2 hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all"
             >
-              <Play className="w-6 h-6 mr-3" />
-              Explore Dashboard
+              <User className="w-6 h-6 mr-3" />
+              Login to Dashboard
               <ArrowRight className="w-6 h-6 ml-3 transform group-hover:translate-x-1 transition-transform" />
             </button>
             
             <button className="flex items-center px-10 py-5 bg-yellow-300 border-4 border-black rounded-lg font-black text-xl shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] hover:translate-x-2 hover:translate-y-2 hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all">
+              <Play className="w-6 h-6 mr-3" />
               Watch Demo
             </button>
           </div>

@@ -97,7 +97,7 @@ const ControlPanel = ({
             }`}></div>
             <div>
               <span className="text-sm font-black text-black">
-                {connectionStatus?.fallbackToMock ? 'Demo Mode' : 'Production'}
+                {connectionStatus?.fallbackToMock ? 'Live Preview' : 'Production'}
               </span>
               <p className="text-xs text-gray-700 font-bold">
                 {connectionStatus?.isInitialized ? 'Connected' : 'Disconnected'}
@@ -195,6 +195,7 @@ const ControlPanel = ({
             disabled={isDisabled}
             placeholder="e.g., weather, financial, social"
             className="w-full px-4 py-3 bg-white border-2 border-black rounded-lg shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] text-black font-bold placeholder-gray-500 focus:outline-none focus:translate-x-1 focus:translate-y-1 focus:shadow-[1px_1px_0px_0px_rgba(0,0,0,1)] transition-all disabled:opacity-50"
+            data-tour="search-input"
           />
         </div>
 
@@ -269,8 +270,8 @@ const ControlPanel = ({
           />
         </div>
 
-        {/* Start Button */}
-        <button
+  {/* Start Button */}
+  <button data-tour="start-agent-button"
           onClick={onStartAgent}
           disabled={isDisabled}
           className="w-full px-6 py-4 bg-gradient-to-r from-green-400 to-emerald-400 border-2 border-black rounded-lg shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] text-black font-black text-lg hover:translate-x-1 hover:translate-y-1 hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-x-0 disabled:hover:translate-y-0"

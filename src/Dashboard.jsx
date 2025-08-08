@@ -1,4 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import Joyride from 'react-joyride';
+import { useAuth } from './context/AuthContext.jsx';
 import { 
   Globe, 
   Users, 
@@ -29,7 +31,8 @@ import {
   LineChart,
   Download,
   Package,
-  FileCheck
+  FileCheck,
+  HelpCircle
 } from 'lucide-react';
 import ControlPanel from './components/ControlPanel/ControlPanel_neubrutalism';
 import RealtimeLog from './components/RealtimeLog/RealtimeLog_neubrutalism';
@@ -43,6 +46,9 @@ import { DEMO_CONFIG } from './utils/demoConfig';
 function Dashboard({ onBackToLanding }) {
   console.log('Dashboard: Component mounting/rendering');
   
+  // Get authentication info and logout function
+  const { user, logout } = useAuth();
+  
   const [searchCriteria, setSearchCriteria] = useState({
     dataType: 'weather',
     location: 'Global',
@@ -52,6 +58,7 @@ function Dashboard({ onBackToLanding }) {
   });
   
   const [showDemoControls, setShowDemoControls] = useState(DEMO_CONFIG.DEMO_MODE);
+  const [runTour, setRunTour] = useState(false);
   const [currentScenario, setCurrentScenario] = useState(null);
   const [autoStarted, setAutoStarted] = useState(false);
   const [activeTab, setActiveTab] = useState('network'); // Add active tab state
@@ -237,8 +244,202 @@ function Dashboard({ onBackToLanding }) {
     return () => window.removeEventListener('keydown', handleKeyPress);
   }, [showDemoControls, currentScenario, handleScenarioStart, handleRefresh]);
 
+  // Guided tour steps definition - direct dashboard features explanation
+  const tourSteps = [
+    {
+      target: '[data-tour="search-input"]',
+      content: "Enter your search queries here to generate content from the neural network.",
+      placement: "bottom",
+      disableBeacon: true,
+      spotlightClicks: false
+    },
+    {
+      target: '[data-tour="start-agent-button"]',
+      content: "Click this button to start the agent and begin generating content based on your query.",
+      placement: "bottom",
+      disableBeacon: true,
+      spotlightClicks: false
+    },
+    {
+      target: '.network-visualization',
+      content: "This visualization shows the neural network in action, demonstrating how information flows through the system.",
+      placement: "bottom",
+      disableBeacon: true,
+      spotlightClicks: false
+    },
+    {
+      target: '.metrics-display',
+      content: "Monitor key performance metrics such as accuracy, processing time, and efficiency in real-time.",
+      placement: "left",
+      disableBeacon: true,
+      spotlightClicks: false
+    },
+    {
+      target: '.realtime-log',
+      content: "The Real-time Log displays system activity and agent behavior as it happens.",
+      placement: "left",
+      disableBeacon: true,
+      spotlightClicks: false
+    },
+    {
+      target: '.wallet-balance',
+      content: "Your ICP cryptocurrency balance for data transactions.",
+      placement: "bottom",
+      disableBeacon: true,
+      spotlightClicks: false
+    },
+    {
+      target: '[data-tour="header-tour-button"]',
+      content: "You can restart this tour anytime by clicking this button.",
+      placement: "bottom",
+      disableBeacon: true,
+      spotlightClicks: false
+    }
+  ];
+
   return (
     <div className="min-h-screen bg-yellow-50 text-black relative">
+      {/* Guided tour overlay */}
+      <Joyride
+        steps={tourSteps}
+        run={runTour}
+        continuous
+        showSkipButton
+        showProgress
+        scrollToFirstStep
+        disableScrolling
+        spotlightClicks
+        spotlight={true}
+        hideBackButton={false}
+        hideCloseButton={false}
+        styles={{
+          options: {
+            zIndex: 10000,
+            primaryColor: '#000000',
+            backgroundColor: '#ffffff',
+            arrowColor: '#000000',
+            textColor: '#000000',
+            overlayColor: 'rgba(0, 0, 0, 0.75)',
+            width: 320
+          },
+          spotlight: {
+            backgroundColor: 'transparent',
+            borderRadius: 0
+          },
+          tooltipContainer: {
+            textAlign: 'left',
+            padding: '12px',
+            borderRadius: '8px',
+            fontWeight: 700,
+            fontSize: '14px',
+            border: '2px solid #000000',
+            boxShadow: '4px 4px 0px 0px rgba(0,0,0,1)',
+            backgroundColor: '#ffffff'
+          },
+          tooltip: {
+            fontSize: '14px',
+            padding: '8px 0',
+            backgroundColor: '#ffffff',
+            color: '#000000'
+          },
+          buttonBack: {
+            marginRight: 10,
+            backgroundColor: '#fde047',
+            color: '#000000',
+            fontSize: '14px',
+            fontWeight: 'bold',
+            padding: '6px 12px',
+            border: '2px solid #000000',
+            boxShadow: '2px 2px 0px 0px rgba(0,0,0,1)'
+          },
+          buttonNext: {
+            backgroundColor: '#fde047',
+            color: '#000000',
+            fontSize: '14px',
+            fontWeight: 'bold',
+            padding: '6px 12px',
+            border: '2px solid #000000',
+            boxShadow: '2px 2px 0px 0px rgba(0,0,0,1)'
+          },
+          buttonSkip: {
+            color: '#000000',
+            fontSize: '14px',
+            fontWeight: 'bold'
+          },
+          overlay: {
+            backgroundColor: 'rgba(0, 0, 0, 0.5)'
+          }
+        }}
+        locale={{
+          back: 'Prev',
+          close: 'Done',
+          last: 'Finish',
+          next: 'Next',
+          skip: 'Skip'
+        }}
+        floaterProps={{
+          disableAnimation: true,
+          styles: {
+            floater: {
+              filter: 'drop-shadow(0px 0px 5px rgba(0,0,0,0.3))'
+            },
+            arrow: {
+              color: '#000000',
+              length: 6,
+              spread: 10
+            }
+          }
+        }}
+        disableOverlay={false}
+        disableOverlayClose={false}
+        tooltipComponent={({
+          continuous,
+          index,
+          step,
+          backProps,
+          closeProps,
+          primaryProps,
+          skipProps,
+          isLastStep,
+        }) => (
+          <div className="p-4 bg-white border-2 border-black rounded">
+            <div className="mb-2 font-bold text-black text-base">{step.content}</div>
+            <div className="flex justify-between items-center">
+              <div>
+                {index > 0 && (
+                  <button 
+                    {...backProps} 
+                    className="px-4 py-1 mr-2 bg-yellow-300 border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] text-black font-bold rounded"
+                  >
+                    Prev
+                  </button>
+                )}
+                {!isLastStep && (
+                  <button 
+                    {...skipProps} 
+                    className="px-4 py-1 bg-gray-200 border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] text-black font-bold rounded"
+                  >
+                    Skip
+                  </button>
+                )}
+              </div>
+              <button 
+                {...(isLastStep ? closeProps : primaryProps)} 
+                className="px-4 py-1 bg-yellow-300 border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] text-black font-bold rounded"
+              >
+                {isLastStep ? 'Done' : 'Next'}
+              </button>
+            </div>
+          </div>
+        )}
+        callback={(data) => {
+          const { action, index, status, type } = data;
+          
+          if (status === 'finished' || status === 'skipped') {
+            setRunTour(false);
+          }
+        }}
+      />
       {/* Error Display */}
       {error && (
         <div className="fixed top-4 right-4 z-50 bg-red-300 border-4 border-black text-black p-4 rounded-lg shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
@@ -273,7 +474,7 @@ function Dashboard({ onBackToLanding }) {
                   <h1 className="text-xl font-black text-black">
                     GenesisNet
                   </h1>
-                  <p className="text-xs text-purple-600 font-bold">v1.0</p>
+                  <p className="text-xs text-purple-600 font-bold">Data Marketplace</p>
                 </div>
               </div>
               
@@ -281,7 +482,7 @@ function Dashboard({ onBackToLanding }) {
               <nav className="hidden lg:flex items-center space-x-1">
                 <button 
                   onClick={() => setActiveTab('network')}
-                  className={`flex items-center space-x-2 px-3 py-2 rounded-lg text-black text-sm font-black border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:translate-x-1 hover:translate-y-1 hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all ${
+                  className={`flex items-center space-x-2 px-3 py-2 rounded-lg text-black text-sm font-black border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:translate-x-1 hover:translate-y-1 hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all network-tab ${
                     activeTab === 'network' ? 'bg-cyan-300' : 'bg-white'
                   }`}
                 >
@@ -302,6 +503,32 @@ function Dashboard({ onBackToLanding }) {
             
             {/* Right Controls */}
             <div className="flex items-center space-x-3">
+              {/* User Profile Button */}
+              <div className="relative group">
+                <button 
+                  className="flex items-center space-x-2 px-3 py-2 rounded-lg bg-lime-300 text-black text-sm font-black border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:translate-x-1 hover:translate-y-1 hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all"
+                >
+                  <User size={16} />
+                  <span>{user?.username || 'User'}</span>
+                </button>
+                
+                {/* Dropdown Menu */}
+                <div className="absolute right-0 mt-2 w-48 bg-white border-2 border-black rounded-lg shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hidden group-hover:block z-50">
+                  <div className="p-2">
+                    <button 
+                      onClick={() => {
+                        logout();
+                        onBackToLanding();
+                      }}
+                      className="w-full text-left px-3 py-2 text-sm font-bold text-black hover:bg-yellow-100 rounded flex items-center"
+                    >
+                      <ArrowLeft size={14} className="mr-2" />
+                      Logout
+                    </button>
+                  </div>
+                </div>
+              </div>
+              
               {/* Back to Landing Button */}
               {onBackToLanding && (
                 <button 
@@ -312,10 +539,20 @@ function Dashboard({ onBackToLanding }) {
                   <span>Landing</span>
                 </button>
               )}
+              {/* Help Tour Button */}
+              <button
+                onClick={() => setRunTour(true)}
+                data-tour="header-tour-button"
+                className="flex items-center space-x-2 px-3 py-2 rounded-lg bg-yellow-300 text-black text-sm font-black border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:translate-x-1 hover:translate-y-1 hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all"
+                aria-label="Start guided tour"
+              >
+                <HelpCircle size={16} />
+                <span>Tour</span>
+              </button>
               
               {/* Wallet Balance & History */}
               <div className="flex items-center space-x-2">
-                <div className="flex items-center space-x-2 px-3 py-1.5 rounded-lg bg-yellow-300 border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+                <div className="flex items-center space-x-2 px-3 py-1.5 rounded-lg bg-yellow-300 border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] wallet-balance">
                   <ShoppingCart size={14} />
                   <span className="text-xs text-black font-black">{walletBalance.toFixed(2)} ICP</span>
                   {pendingPayments.length > 0 && (
@@ -542,7 +779,7 @@ function Dashboard({ onBackToLanding }) {
             )}
 
             {/* Control Panel Component */}
-            <div className="bg-yellow-100 border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] rounded-lg p-3">
+            <div data-tour="control-panel" className="bg-yellow-100 border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] rounded-lg p-3">
               <ControlPanel
                 searchCriteria={searchCriteria}
                 onInputChange={handleInputChange}
@@ -577,7 +814,7 @@ function Dashboard({ onBackToLanding }) {
             </div>
 
             {/* Action Buttons */}
-            <div className="space-y-2">
+            <div className="space-y-2 network-actions">
               <button 
                 onClick={handleNegotiate}
                 className="w-full px-3 py-2 bg-cyan-400 border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] rounded-lg text-sm font-black hover:translate-x-1 hover:translate-y-1 hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all"
@@ -681,7 +918,7 @@ function Dashboard({ onBackToLanding }) {
                   </div>
                   
                   {/* Network Visualization Component */}
-                  <div className="pt-16 h-full">
+                  <div className="pt-16 h-full network-visualization">
                     <NetworkVisualization
                       agentStatus={agentStatus}
                       networkData={networkData}
@@ -851,7 +1088,7 @@ function Dashboard({ onBackToLanding }) {
             {activeTab === 'network' && (
               <>
                 {/* Performance Metrics */}
-                <div className="bg-yellow-200 border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] rounded-lg p-3">
+                <div className="bg-yellow-200 border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] rounded-lg p-3 metrics-display">
                   <div className="flex items-center justify-between mb-3">
                     <h3 className="text-xs font-black text-black">PERFORMANCE</h3>
                     <span className="text-xs text-black font-bold">Live</span>
@@ -899,7 +1136,7 @@ function Dashboard({ onBackToLanding }) {
                 {/* Real-time Activity Log */}
                 <div className="space-y-3">
                   <h3 className="text-xs font-black text-black uppercase tracking-wide">Activity Log</h3>
-                  <div className="h-96">
+                  <div className="h-96 realtime-log">
                     <RealtimeLog logs={logs} />
                   </div>
                 </div>
@@ -1109,7 +1346,7 @@ function Dashboard({ onBackToLanding }) {
         <div className="flex justify-between items-center text-xs font-black">
           <div className="flex items-center space-x-4">
             <span className="text-black">STATUS: <span className="text-green-600">{agentStatus?.toUpperCase()}</span></span>
-            <span className="text-black">MODE: <span className="text-yellow-600">{isMockMode ? 'DEMO' : 'LIVE'}</span></span>
+            <span className="text-black">MODE: <span className="text-yellow-600">{isMockMode ? 'TRAINING' : 'LIVE'}</span></span>
             {lastUpdate && (
               <span className="text-black">UPDATED: <span className="text-cyan-600">{lastUpdate.toLocaleTimeString()}</span></span>
             )}
