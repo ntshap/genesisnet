@@ -198,7 +198,7 @@ const LandingPage = ({ onEnterDashboard }) => {
                 onClick={onEnterDashboard}
                 className="px-6 py-3 bg-lime-300 text-black font-black border-4 border-black rounded-lg shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] hover:translate-x-1 hover:translate-y-1 hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all"
               >
-                LAUNCH DASHBOARD
+                LOGIN
               </button>
             </div>
 
@@ -229,7 +229,7 @@ const LandingPage = ({ onEnterDashboard }) => {
                     }}
                     className="px-6 py-3 bg-lime-300 text-black font-black border-4 border-black rounded-lg shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] hover:translate-x-1 hover:translate-y-1 hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all"
                   >
-                    LAUNCH DASHBOARD
+                    LOGIN
                   </button>
                 </div>
               </div>
