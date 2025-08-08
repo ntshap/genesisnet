@@ -8,6 +8,7 @@ import {
   Bug, 
   FileText,
   Trash2,
+  ChevronDown,
   Search,
   Filter
 } from 'lucide-react';
@@ -26,7 +27,6 @@ const getLogLevelColor = (level) => {
 const RealtimeLog = ({ logs, isLoading, onClearLogs }) => {
   const logEndRef = useRef(null);
   const logContainerRef = useRef(null);
-  const [autoScroll, setAutoScroll] = useState(true);
   const [filter, setFilter] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
 
@@ -48,18 +48,10 @@ const RealtimeLog = ({ logs, isLoading, onClearLogs }) => {
 
   const displayLogs = logs && logs.length > 0 ? logs : defaultLogs;
 
-  useEffect(() => {
-    if (autoScroll) {
-      logEndRef.current?.scrollIntoView({ behavior: "smooth" });
-    }
-  }, [displayLogs, autoScroll]);
-
+  // Removed auto-scrolling behavior completely
+  
   const handleScroll = () => {
-    if (logContainerRef.current) {
-      const { scrollTop, scrollHeight, clientHeight } = logContainerRef.current;
-      const isNearBottom = scrollHeight - scrollTop - clientHeight < 50;
-      setAutoScroll(isNearBottom);
-    }
+    // Manual scroll handling only
   };
 
   const parseLogLevel = (log) => {
@@ -240,19 +232,19 @@ const RealtimeLog = ({ logs, isLoading, onClearLogs }) => {
       <div className="border-t border-white/10 p-3 flex items-center justify-between text-xs flex-shrink-0 glass-dark">
         <div className="flex items-center space-x-4 text-gray-400">
           <span className="font-medium">{filteredLogs.length} / {displayLogs.length} logs</span>
-          <label className="flex items-center space-x-2 cursor-pointer hover:text-white transition-colors">
-            <input
-              type="checkbox"
-              checked={autoScroll}
-              onChange={(e) => setAutoScroll(e.target.checked)}
-              className="w-3 h-3 text-primary-600 rounded focus:ring-primary-500 bg-dark-700 border-dark-600"
-            />
-            <span>Auto-scroll</span>
-          </label>
         </div>
-        <div className="text-gray-500 flex items-center space-x-1">
-          <Activity size={12} />
-          <span>Live</span>
+        <div className="flex items-center space-x-3">
+          <button
+            onClick={() => logEndRef.current?.scrollIntoView({ behavior: "smooth" })}
+            className="text-cyan-400 hover:text-cyan-300 transition-colors font-medium flex items-center space-x-1"
+          >
+            <span>Scroll to End</span>
+            <ChevronDown size={12} />
+          </button>
+          <div className="text-gray-500 flex items-center space-x-1">
+            <Activity size={12} />
+            <span>Live</span>
+          </div>
         </div>
       </div>
     </div>

@@ -37,7 +37,6 @@ const getLogIcon = (level) => {
 const RealtimeLog = ({ logs, isLoading, onClearLogs }) => {
   const logEndRef = useRef(null);
   const logContainerRef = useRef(null);
-  const [autoScroll, setAutoScroll] = useState(true);
   const [filter, setFilter] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
 
@@ -137,18 +136,10 @@ const RealtimeLog = ({ logs, isLoading, onClearLogs }) => {
     return true;
   });
 
-  useEffect(() => {
-    if (autoScroll && logEndRef.current) {
-      logEndRef.current.scrollIntoView({ behavior: 'smooth' });
-    }
-  }, [filteredLogs, autoScroll]);
-
+  // Removed auto-scrolling behavior completely
+  
   const handleScroll = () => {
-    if (logContainerRef.current) {
-      const { scrollTop, scrollHeight, clientHeight } = logContainerRef.current;
-      const isAtBottom = scrollHeight - scrollTop <= clientHeight + 10;
-      setAutoScroll(isAtBottom);
-    }
+    // Manual scroll handling only
   };
 
   const levels = ['all', 'error', 'warning', 'success', 'info', 'debug'];
@@ -265,21 +256,17 @@ const RealtimeLog = ({ logs, isLoading, onClearLogs }) => {
         <div ref={logEndRef} />
       </div>
 
-      {/* Auto-scroll toggle */}
+      {/* Status bar with manual scroll button */}
       <div className="bg-orange-300 border-t-2 border-black p-2 flex items-center justify-between">
-        <label className="flex items-center space-x-2 text-xs font-bold text-black">
-          <input
-            type="checkbox"
-            checked={autoScroll}
-            onChange={(e) => setAutoScroll(e.target.checked)}
-            className="rounded border-black"
-          />
-          <span>Auto-scroll</span>
-        </label>
-        
-        <span className="text-xs text-black font-bold">
-          {autoScroll ? '📍 Following' : '⏸️ Paused'}
+        <span className="text-xs font-bold text-black">
+          {filteredLogs.length} log entries
         </span>
+        <button
+          onClick={() => logEndRef.current?.scrollIntoView({ behavior: "smooth" })}
+          className="text-xs font-bold hover:underline"
+        >
+          Scroll to End →
+        </button>
       </div>
     </div>
   );

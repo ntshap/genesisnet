@@ -3,7 +3,6 @@ import React, { useEffect, useRef, useState } from 'react';
 const RealtimeLog = ({ logs, isLoading, onClearLogs }) => {
   const logEndRef = useRef(null);
   const logContainerRef = useRef(null);
-  const [autoScroll, setAutoScroll] = useState(true);
   const [filter, setFilter] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
 
@@ -25,18 +24,10 @@ const RealtimeLog = ({ logs, isLoading, onClearLogs }) => {
 
   const displayLogs = logs && logs.length > 0 ? logs : defaultLogs;
 
-  useEffect(() => {
-    if (autoScroll) {
-      logEndRef.current?.scrollIntoView({ behavior: "smooth" });
-    }
-  }, [displayLogs, autoScroll]);
-
+  // Removed auto-scrolling behavior completely
+  
   const handleScroll = () => {
-    if (logContainerRef.current) {
-      const { scrollTop, scrollHeight, clientHeight } = logContainerRef.current;
-      const isNearBottom = scrollHeight - scrollTop - clientHeight < 50;
-      setAutoScroll(isNearBottom);
-    }
+    // Manual scroll handling only
   };
 
   const parseLogLevel = (log) => {
@@ -246,15 +237,6 @@ const RealtimeLog = ({ logs, isLoading, onClearLogs }) => {
             <span className="font-medium">
               {filteredLogs.length} / {displayLogs.length} logs
             </span>
-            <label className="flex items-center space-x-2 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={autoScroll}
-                onChange={(e) => setAutoScroll(e.target.checked)}
-                className="w-4 h-4 text-cyan-600 rounded focus:ring-cyan-500 bg-gray-700 border-gray-600"
-              />
-              <span>Auto-scroll</span>
-            </label>
           </div>
           
           <button

@@ -473,62 +473,11 @@ const LandingPage = ({ onEnterDashboard }) => {
       </section>
 
       {/* Footer */}
-      <footer id="about" className="relative z-10 bg-black text-white py-12 px-6 lg:px-12">
-        <div className="max-w-7xl mx-auto">
-          <div className="grid md:grid-cols-4 gap-8 mb-8">
-            <div>
-              <div className="flex items-center space-x-3 mb-4">
-                <div className="w-12 h-12 rounded-lg bg-yellow-400 border-4 border-white shadow-[4px_4px_0px_0px_rgba(255,255,255,1)] p-1">
-                  <div className="w-full h-full rounded-lg bg-black border-2 border-white flex items-center justify-center">
-                    <img src={genesisLogo} alt="GenesisNet" className="w-6 h-6 object-contain" />
-                  </div>
-                </div>
-                <div>
-                  <h3 className="font-black text-white">GenesisNet</h3>
-                  <p className="text-sm text-yellow-300 font-bold">The future of decentralized data exchange, built with ❤️ on Internet Computer.</p>
-                </div>
-              </div>
-            </div>
-            
-            <div>
-              <h4 className="font-black mb-4 text-white">Product</h4>
-              <ul className="space-y-2 text-white font-bold">
-                <li><a href="#features" className="hover:text-yellow-300 transition-colors">Features</a></li>
-                <li><a href="#usecases" className="hover:text-yellow-300 transition-colors">Use Cases</a></li>
-                <li><button onClick={onEnterDashboard} className="hover:text-yellow-300 transition-colors text-left">Dashboard</button></li>
-                <li><a href="#" className="hover:text-yellow-300 transition-colors">API Docs</a></li>
-              </ul>
-            </div>
-            
-            <div>
-              <h4 className="font-black mb-4 text-white">Company</h4>
-              <ul className="space-y-2 text-white font-bold">
-                <li><a href="#" className="hover:text-yellow-300 transition-colors">About</a></li>
-                <li><a href="#" className="hover:text-yellow-300 transition-colors">Blog</a></li>
-                <li><a href="#" className="hover:text-yellow-300 transition-colors">Careers</a></li>
-                <li><a href="#" className="hover:text-yellow-300 transition-colors">Contact</a></li>
-              </ul>
-            </div>
-            
-            <div>
-              <h4 className="font-black mb-4 text-white">Connect</h4>
-              <div className="flex space-x-3 mb-4">
-                <a href="#" className="p-3 bg-yellow-300 border-4 border-white rounded-lg shadow-[4px_4px_0px_0px_rgba(255,255,255,1)] hover:translate-x-1 hover:translate-y-1 hover:shadow-[2px_2px_0px_0px_rgba(255,255,255,1)] transition-all">
-                  <Github className="w-6 h-6 text-black" />
-                </a>
-                <a href="#" className="p-3 bg-cyan-300 border-4 border-white rounded-lg shadow-[4px_4px_0px_0px_rgba(255,255,255,1)] hover:translate-x-1 hover:translate-y-1 hover:shadow-[2px_2px_0px_0px_rgba(255,255,255,1)] transition-all">
-                  <Twitter className="w-6 h-6 text-black" />
-                </a>
-                <a href="#" className="p-3 bg-purple-300 border-4 border-white rounded-lg shadow-[4px_4px_0px_0px_rgba(255,255,255,1)] hover:translate-x-1 hover:translate-y-1 hover:shadow-[2px_2px_0px_0px_rgba(255,255,255,1)] transition-all">
-                  <Linkedin className="w-6 h-6 text-black" />
-                </a>
-              </div>
-            </div>
-          </div>
-          
-          <div className="border-t-4 border-white pt-8 text-center">
-            <p className="text-white font-bold">&copy; 2025 GenesisNet. All rights reserved. Built with ❤️ on Internet Computer.</p>
-          </div>
+      <footer id="about" className="relative z-10 bg-black text-white py-6 px-6 lg:px-12">
+        <div className="max-w-7xl mx-auto text-center">
+          <p className="text-sm text-gray-400 font-bold">
+            © 2024 GenesisNet
+          </p>
         </div>
       </footer>
     </div>
