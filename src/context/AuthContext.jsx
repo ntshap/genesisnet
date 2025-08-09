@@ -7,15 +7,6 @@ const AuthContext = createContext(null);
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [registeredUsers, setRegisteredUsers] = useState(() => {
-    try {
-      const savedUsers = localStorage.getItem('genesisnet-registered-users');
-      return savedUsers ? JSON.parse(savedUsers) : [{ username: 'admin', email: 'admin@genesis.net', password: 'genesis123' }];
-    } catch (error) {
-      console.error('Error loading registered users:', error);
-      return [{ username: 'admin', email: 'admin@genesis.net', password: 'genesis123' }];
-    }
-  });
 
   // Check if user is already logged in on component mount
   useEffect(() => {
@@ -41,24 +32,6 @@ export const AuthProvider = ({ children }) => {
     localStorage.setItem('genesisnet-user', JSON.stringify(userData));
   };
 
-  // Register function
-  const register = (userData) => {
-    const newUser = {
-      ...userData,
-      userId: `user-${Date.now()}`,
-      createdAt: new Date().toISOString(),
-    };
-    
-    const updatedUsers = [...registeredUsers, newUser];
-    setRegisteredUsers(updatedUsers);
-    localStorage.setItem('genesisnet-registered-users', JSON.stringify(updatedUsers));
-    
-    setUser(newUser);
-    localStorage.setItem('genesisnet-user', JSON.stringify(newUser));
-    
-    return newUser;
-  };
-
   // Logout function
   const logout = () => {
     setUser(null);
@@ -71,9 +44,7 @@ export const AuthProvider = ({ children }) => {
     isAuthenticated: !!user,
     isLoading,
     login,
-    logout,
-    register,
-    registeredUsers
+    logout
   };
 
   return (
