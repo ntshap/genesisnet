@@ -613,7 +613,7 @@ function Dashboard({ onBackToLanding }) {
                 <div className="text-xs text-black font-bold">Connections</div>
               </div>
             </div>
-            {/* Search Results Panel */}
+            {/* Live Preview panel removed as requested */}
             {searchResults.length > 0 && (
               <div className="bg-yellow-300 border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] rounded-lg p-4">
                 <h3 className="text-sm font-black text-black uppercase tracking-wide mb-3">Search Results ({searchResults.length})</h3>
