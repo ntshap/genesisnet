@@ -1,14 +1,14 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import Joyride from 'react-joyride';
 import { useAuth } from './context/AuthContext.jsx';
-import { 
-  Globe, 
-  Users, 
-  BarChart3, 
-  ShoppingCart, 
-  User, 
-  Search, 
-  Handshake, 
+import {
+  Globe,
+  Users,
+  BarChart3,
+  ShoppingCart,
+  User,
+  Search,
+  Handshake,
   RefreshCw,
   Settings,
   Zap,
@@ -43,10 +43,12 @@ import genesisLogo from './assets/genesisnet-logo.png';
 import DemoControlPanel from './components/DemoControlPanel';
 import useInteractiveDemo from './hooks/useInteractiveDemo';
 import { DEMO_CONFIG } from './utils/demoConfig';
+import AccountSettingsPanel from './components/AccountSettingsPanel.jsx';
+import NotificationCenter from './components/NotificationCenter/NotificationCenter.jsx';
 
 function Dashboard({ onBackToLanding }) {
   console.log('Dashboard: Component mounting/rendering');
-  
+
   // Get authentication info and logout function
   const { user, logout } = useAuth();
   
@@ -59,20 +61,15 @@ function Dashboard({ onBackToLanding }) {
   });
   
   const [showDemoControls, setShowDemoControls] = useState(DEMO_CONFIG.DEMO_MODE);
-  // Mode state for Training/Live
   const [mode, setMode] = useState('training');
-
-  // Mode change handler
-  const handleModeChange = (newMode) => {
-    setMode(newMode);
-    addLog && addLog('mode', `Mode changed to ${newMode === 'training' ? 'Training' : 'Live'} Mode`, 'info', 'mode-toggle');
-  };
+  const [isScanning, setIsScanning] = useState(false); // Added missing state
   const [runTour, setRunTour] = useState(false);
   const [currentScenario, setCurrentScenario] = useState(null);
   const [autoStarted, setAutoStarted] = useState(false);
-  const [activeTab, setActiveTab] = useState('network'); // Add active tab state
-  const [showWalletHistory, setShowWalletHistory] = useState(false); // Add wallet history state
-  const [isScanning, setIsScanning] = useState(false); // Add scanning state
+  const [activeTab, setActiveTab] = useState('network');
+  const [showWalletHistory, setShowWalletHistory] = useState(false);
+  const [showSettingsPanel, setShowSettingsPanel] = useState(false);
+  const [userSettings, setUserSettings] = useState({ theme: 'light', accentColor: '#FFD600', language: 'id', notifications: true, avatar: '' });
 
   // Use the enhanced interactive demo hook
   const {
@@ -306,6 +303,16 @@ function Dashboard({ onBackToLanding }) {
     }
   ];
 
+  const handleModeChange = (newMode) => {
+    setMode(newMode);
+    // Assuming addLog function is passed from a parent or context
+    // This part of the code might need to be adjusted based on the actual implementation
+    // if (addLog && typeof addLog === 'function') {
+    //   addLog('mode', `Mode changed to ${newMode === 'training' ? 'Training' : 'Live'} Mode`, 'info', 'mode-toggle');
+    // }
+  };
+  
+
   return (
     <div className="min-h-screen bg-yellow-50 text-black relative">
       {/* Guided tour overlay */}
@@ -416,24 +423,24 @@ function Dashboard({ onBackToLanding }) {
             <div className="flex justify-between items-center">
               <div>
                 {index > 0 && (
-                  <button 
-                    {...backProps} 
+                  <button
+                    {...backProps}
                     className="px-4 py-1 mr-2 bg-yellow-300 border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] text-black font-bold rounded"
                   >
                     Prev
                   </button>
                 )}
                 {!isLastStep && (
-                  <button 
-                    {...skipProps} 
+                  <button
+                    {...skipProps}
                     className="px-4 py-1 bg-gray-200 border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] text-black font-bold rounded"
                   >
                     Skip
                   </button>
                 )}
               </div>
-              <button 
-                {...(isLastStep ? closeProps : primaryProps)} 
+              <button
+                {...(isLastStep ? closeProps : primaryProps)}
                 className="px-4 py-1 bg-yellow-300 border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] text-black font-bold rounded"
               >
                 {isLastStep ? 'Done' : 'Next'}
@@ -465,137 +472,127 @@ function Dashboard({ onBackToLanding }) {
 
       {/* Top Navigation Bar */}
       <header className="relative z-50 bg-white border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]">
-        <div className="px-4 py-3">
-          <div className="flex items-center justify-between">
-            {/* Logo Section */}
-            <div className="flex items-center space-x-6">
-              <div className="flex items-center space-x-3">
-                <div className="w-16 h-16 rounded-lg bg-yellow-400 border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] p-1.5 relative">
-                  <div className="w-full h-full rounded-lg bg-white border-2 border-black flex items-center justify-center">
-                    <img 
-                      src={genesisLogo} 
-                      alt="GenesisNet" 
-                      className="w-10 h-10 object-contain"
-                    />
-                  </div>
-                </div>
-                <div>
-                  <h1 className="text-xl font-black text-black">
-                    GenesisNet
-                  </h1>
-                  <p className="text-xs text-purple-600 font-bold">Data Marketplace</p>
-                </div>
-              </div>
-              
-              {/* Navigation Menu */}
-              <nav className="hidden lg:flex items-center space-x-1">
-                <button 
-                  onClick={() => setActiveTab('network')}
-                  className={`flex items-center space-x-2 px-3 py-2 rounded-lg text-black text-sm font-black border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:translate-x-1 hover:translate-y-1 hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all network-tab ${
-                    activeTab === 'network' ? 'bg-cyan-300' : 'bg-white'
-                  }`}
-                >
-                  <Network size={16} />
-                  <span>Network</span>
-                </button>
-                <button 
-                  onClick={() => setActiveTab('analytics')}
-                  className={`flex items-center space-x-2 px-3 py-2 rounded-lg text-black text-sm font-black border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:translate-x-1 hover:translate-y-1 hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all ${
-                    activeTab === 'analytics' ? 'bg-pink-300' : 'bg-white'
-                  }`}
-                >
-                  <BarChart3 size={16} />
-                  <span>Analytics</span>
-                </button>
-                </nav>
-                {/* Mode Toggle - right side of header */}
-              <div className="ml-8 flex items-center">
-                <ModeToggle mode={mode} onChange={handleModeChange} />
+        <div className="px-4 py-3 flex items-center justify-between">
+          {/* Left: Logo and Title */}
+          <div className="flex items-center space-x-3">
+            <div className="w-16 h-16 rounded-lg bg-yellow-400 border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] p-1.5 relative flex items-center justify-center">
+              <div className="w-full h-full rounded-lg bg-white border-2 border-black flex items-center justify-center">
+                <img src={genesisLogo} alt="GenesisNet" className="w-10 h-10 object-contain" />
               </div>
             </div>
-            
-            {/* Right Controls */}
-            <div className="flex items-center space-x-3">
-              {/* User Profile Button */}
-              <div className="relative group">
-                <button 
-                  className="flex items-center space-x-2 px-3 py-2 rounded-lg bg-lime-300 text-black text-sm font-black border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:translate-x-1 hover:translate-y-1 hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all"
-                >
-                  <User size={16} />
-                  <span>{user?.username || 'User'}</span>
-                </button>
-                
-                {/* Dropdown Menu */}
-                <div className="absolute right-0 mt-2 w-48 bg-white border-2 border-black rounded-lg shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hidden group-hover:block z-50">
-                  <div className="p-2">
-                    <button 
-                      onClick={() => {
-                        logout();
-                        onBackToLanding();
-                      }}
-                      className="w-full text-left px-3 py-2 text-sm font-bold text-black hover:bg-yellow-100 rounded flex items-center"
-                    >
-                      <ArrowLeft size={14} className="mr-2" />
-                      Logout
-                    </button>
-                  </div>
-                </div>
-              </div>
-              
-              {/* Back to Landing Button */}
-              {onBackToLanding && (
-                <button 
-                  onClick={onBackToLanding}
-                  className="flex items-center space-x-2 px-3 py-2 rounded-lg bg-purple-300 text-black text-sm font-black border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:translate-x-1 hover:translate-y-1 hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all"
-                >
-                  <ArrowLeft size={16} />
-                  <span>Landing</span>
-                </button>
-              )}
-              {/* Help Tour Button */}
+            <div>
+              <h1 className="text-xl font-black text-black">GenesisNet</h1>
+              <p className="text-xs text-purple-600 font-bold">Data Marketplace</p>
+            </div>
+          </div>
+          
+          {/* Center: Navigation Buttons */}
+          <div className="flex items-center space-x-2">
+            <button
+              onClick={() => setActiveTab('network')}
+              className={`flex items-center space-x-2 px-3 py-2 rounded-lg text-black text-sm font-black border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all ${
+                activeTab === 'network' ? 'bg-cyan-300' : 'bg-white'
+              }`}
+            >
+              <Network size={16} />
+              <span>Network</span>
+            </button>
+            <button
+              onClick={() => setActiveTab('analytics')}
+              className={`flex items-center space-x-2 px-3 py-2 rounded-lg text-black text-sm font-black border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all ${
+                activeTab === 'analytics' ? 'bg-pink-300' : 'bg-white'
+              }`}
+            >
+              <BarChart3 size={16} />
+              <span>Analytics</span>
+            </button>
+            <div className="ml-4">
+              <ModeToggle mode={mode} onChange={handleModeChange} />
+            </div>
+          </div>
+
+          {/* Right: User, Wallet, and Status Controls */}
+          <div className="flex items-center space-x-3">
+            <NotificationCenter />
+            <div className="relative group">
               <button
-                onClick={() => setRunTour(true)}
-                data-tour="header-tour-button"
-                className="flex items-center space-x-2 px-3 py-2 rounded-lg bg-yellow-300 text-black text-sm font-black border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:translate-x-1 hover:translate-y-1 hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all"
-                aria-label="Start guided tour"
+                className="flex items-center space-x-2 px-3 py-2 rounded-lg bg-lime-300 text-black text-sm font-black border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:translate-x-1 hover:translate-y-1 hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all"
+                onClick={() => setShowSettingsPanel(true)}
               >
-                <HelpCircle size={16} />
-                <span>Tour</span>
+                <User size={16} />
+                <span>{user?.username || 'User'}</span>
               </button>
-              
-              {/* Wallet Balance & History */}
-              <div className="flex items-center space-x-2">
-                <div className="flex items-center space-x-2 px-3 py-1.5 rounded-lg bg-yellow-300 border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] wallet-balance">
-                  <ShoppingCart size={14} />
-                  <span className="text-xs text-black font-black">{walletBalance.toFixed(2)} ICP</span>
-                  {pendingPayments.length > 0 && (
-                    <div className="w-2 h-2 rounded-full bg-orange-500 border border-black animate-pulse"></div>
-                  )}
+              <div className="absolute right-0 mt-2 w-48 bg-white border-2 border-black rounded-lg shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hidden group-hover:block z-50">
+                <div className="p-2">
+                  <button
+                    onClick={() => {
+                      logout();
+                      onBackToLanding();
+                    }}
+                    className="w-full text-left px-3 py-2 text-sm font-bold text-black hover:bg-yellow-100 rounded flex items-center"
+                  >
+                    <ArrowLeft size={14} className="mr-2" />
+                    Logout
+                  </button>
                 </div>
-                
-                {/* Wallet History Button */}
-                <button 
-                  onClick={() => setShowWalletHistory(!showWalletHistory)}
-                  className="px-2 py-1.5 rounded-lg bg-blue-300 text-black text-xs font-black border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:translate-x-1 hover:translate-y-1 hover:shadow-[1px_1px_0px_0px_rgba(0,0,0,1)] transition-all"
-                >
-                  💰
-                </button>
               </div>
-              
-              {/* Status Indicator */}
-              <div className="flex items-center space-x-2 px-3 py-1.5 rounded-lg bg-lime-300 border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
-                <div className={`w-2 h-2 rounded-full ${
-                  isConnectedToICP ? 'bg-green-500 border border-black' : 
-                  isMockMode ? 'bg-yellow-500 border border-black' : 'bg-red-500 border border-black'
-                }`}></div>
-                <span className="text-xs text-black font-black">{agentStatus}</span>
+            </div>
+            {onBackToLanding && (
+              <button
+                onClick={onBackToLanding}
+                className="flex items-center space-x-2 px-3 py-2 rounded-lg bg-purple-300 text-black text-sm font-black border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:translate-x-1 hover:translate-y-1 hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all"
+              >
+                <ArrowLeft size={16} />
+                <span>Landing</span>
+              </button>
+            )}
+            <button
+              onClick={() => setRunTour(true)}
+              data-tour="header-tour-button"
+              className="flex items-center space-x-2 px-3 py-2 rounded-lg bg-yellow-300 text-black text-sm font-black border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:translate-x-1 hover:translate-y-1 hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all"
+              aria-label="Start guided tour"
+            >
+              <HelpCircle size={16} />
+              <span>Tour</span>
+            </button>
+            <div className="flex items-center space-x-2">
+              <div className="flex items-center space-x-2 px-3 py-1.5 rounded-lg bg-yellow-300 border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] wallet-balance">
+                <ShoppingCart size={14} />
+                <span className="text-xs text-black font-black">{walletBalance.toFixed(2)} ICP</span>
+                {pendingPayments.length > 0 && (
+                  <div className="w-2 h-2 rounded-full bg-orange-500 border border-black animate-pulse"></div>
+                )}
               </div>
+              <button
+                onClick={() => setShowWalletHistory(!showWalletHistory)}
+                className="px-2 py-1.5 rounded-lg bg-blue-300 text-black text-xs font-black border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:translate-x-1 hover:translate-y-1 hover:shadow-[1px_1px_0px_0px_rgba(0,0,0,1)] transition-all"
+              >
+                💰
+              </button>
+            </div>
+            <div className="flex items-center space-x-2 px-3 py-1.5 rounded-lg bg-lime-300 border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+              <div className={`w-2 h-2 rounded-full ${
+                isConnectedToICP ? 'bg-green-500 border border-black' :
+                isMockMode ? 'bg-yellow-500 border border-black' : 'bg-red-500 border border-black'
+              }`}></div>
+              <span className="text-xs text-black font-black">{agentStatus}</span>
             </div>
           </div>
         </div>
       </header>
-
       {/* Main Layout - 3 Column Dashboard */}
+      {/* Settings Panel Modal */}
+      {showSettingsPanel && (
+        <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
+          <div className="bg-white border-4 border-black rounded-lg shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] p-6 max-w-lg w-full relative">
+            <button
+              className="absolute top-3 right-3 px-2 py-1 bg-red-300 text-black font-black border-2 border-black rounded shadow hover:bg-red-400"
+              onClick={() => setShowSettingsPanel(false)}
+            >✕</button>
+            <AccountSettingsPanel settings={userSettings} onChange={setUserSettings} />
+          </div>
+        </div>
+      )}
       <main className="flex h-[calc(100vh-80px)] pt-2">
         {/* Left Sidebar - Control Panel & Navigation */}
         <aside className="w-80 bg-white border-r-4 border-black shadow-[8px_0px_0px_0px_rgba(0,0,0,1)] overflow-y-auto max-h-[calc(100vh-100px)] scrollbar-neubrutalism mt-2 ml-2 rounded-tl-lg">
@@ -605,7 +602,6 @@ function Dashboard({ onBackToLanding }) {
               <h2 className="text-sm font-black text-black uppercase tracking-wide">Network Control</h2>
               <p className="text-xs text-purple-600 mt-1 font-bold">System parameters and controls</p>
             </div>
-
             {/* Quick Stats Grid */}
             <div className="grid grid-cols-2 gap-3">
               <div className="bg-blue-300 border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] rounded-lg p-3">
@@ -617,7 +613,6 @@ function Dashboard({ onBackToLanding }) {
                 <div className="text-xs text-black font-bold">Connections</div>
               </div>
             </div>
-
             {/* Search Results Panel */}
             {searchResults.length > 0 && (
               <div className="bg-yellow-300 border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] rounded-lg p-4">
@@ -643,11 +638,11 @@ function Dashboard({ onBackToLanding }) {
                           <span className="text-black font-bold">Quality: <span className="text-blue-600">{provider.dataQuality}/10</span></span>
                           <span className="text-black font-bold">Rep: <span className="text-purple-600">{provider.reputation}/10</span></span>
                         </div>
-                        <div className="text-xs text-gray-600 font-medium">{provider.type.toUpperCase()}</div>
+                        <div className="text-xs text-gray-600 font-medium">{provider.type?.toUpperCase()}</div>
                       </div>
                       
                       {/* Action Button */}
-                      <button 
+                      <button
                         onClick={() => handleNegotiate(provider)}
                         disabled={isNegotiating}
                         className="w-full px-3 py-2 bg-lime-300 border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] rounded text-sm text-black font-black hover:translate-x-1 hover:translate-y-1 hover:shadow-[1px_1px_0px_0px_rgba(0,0,0,1)] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
@@ -659,7 +654,6 @@ function Dashboard({ onBackToLanding }) {
                 </div>
               </div>
             )}
-
             {/* Negotiation Status */}
             {negotiationStatus && selectedProvider && (
               <div className="bg-purple-200 border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] rounded-lg p-4">
@@ -688,7 +682,6 @@ function Dashboard({ onBackToLanding }) {
                 </div>
               </div>
             )}
-
             {/* Data Deliveries Panel */}
             {(dataDeliveries.length > 0 || completedDeliveries.length > 0) && (
               <div className="bg-cyan-200 border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] rounded-lg p-4">
@@ -715,7 +708,7 @@ function Dashboard({ onBackToLanding }) {
                         <span className="font-black">{delivery.progress}%</span>
                       </div>
                       <div className="w-full bg-gray-200 border border-black rounded-full h-2">
-                        <div 
+                        <div
                           className="bg-cyan-500 border-r border-black h-full rounded-full transition-all duration-300"
                           style={{ width: `${delivery.progress}%` }}
                         ></div>
@@ -727,7 +720,6 @@ function Dashboard({ onBackToLanding }) {
                     </div>
                   </div>
                 ))}
-
                 {/* Completed Deliveries - Ready for Download */}
                 {completedDeliveries.map((delivery) => (
                   <div key={delivery.id} className="mb-3 p-3 bg-green-100 border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] rounded">
@@ -755,7 +747,6 @@ function Dashboard({ onBackToLanding }) {
                 ))}
               </div>
             )}
-
             {/* Active Downloads Panel */}
             {activeDownloads.length > 0 && (
               <div className="bg-green-200 border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] rounded-lg p-4">
@@ -776,7 +767,7 @@ function Dashboard({ onBackToLanding }) {
                         <span className="font-black">{download.progress}%</span>
                       </div>
                       <div className="w-full bg-gray-200 border border-black rounded-full h-2">
-                        <div 
+                        <div
                           className="bg-green-500 border-r border-black h-full rounded-full transition-all duration-300"
                           style={{ width: `${download.progress}%` }}
                         ></div>
@@ -790,7 +781,6 @@ function Dashboard({ onBackToLanding }) {
                 ))}
               </div>
             )}
-
             {/* Control Panel Component */}
             <div data-tour="control-panel" className="bg-yellow-100 border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] rounded-lg p-3">
               <ControlPanel
@@ -805,7 +795,6 @@ function Dashboard({ onBackToLanding }) {
                 isSearching={isSearching}
               />
             </div>
-
             {/* System Parameters */}
             <div className="space-y-3">
               <h3 className="text-xs font-black text-black uppercase tracking-wide">System Parameters</h3>
@@ -825,23 +814,21 @@ function Dashboard({ onBackToLanding }) {
                 </div>
               </div>
             </div>
-
             {/* Action Buttons */}
             <div className="space-y-2 network-actions">
-              <button 
+              <button
                 onClick={handleNegotiate}
                 className="w-full px-3 py-2 bg-cyan-400 border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] rounded-lg text-sm font-black hover:translate-x-1 hover:translate-y-1 hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all"
               >
                 Initialize Network
               </button>
-              <button 
+              <button
                 onClick={handleRefresh}
                 className="w-full px-3 py-2 bg-lime-300 border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] rounded-lg text-sm font-black hover:translate-x-1 hover:translate-y-1 hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all"
               >
                 Refresh Data
               </button>
             </div>
-
             {/* Network Nodes List */}
             <div className="space-y-3">
               <h3 className="text-xs font-black text-black uppercase tracking-wide">Network Nodes</h3>
@@ -861,7 +848,7 @@ function Dashboard({ onBackToLanding }) {
                   <div key={node.id} className="flex items-center justify-between p-2 bg-orange-200 border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] rounded">
                     <div className="flex items-center space-x-2">
                       <div className={`w-2 h-2 rounded-full border border-black ${
-                        node.status === 'online' ? 'bg-green-500' : 
+                        node.status === 'online' ? 'bg-green-500' :
                         node.status === 'maintenance' ? 'bg-yellow-500' : 'bg-red-500'
                       }`}></div>
                       <span className="text-xs text-black font-black">{node.id}</span>
@@ -871,7 +858,6 @@ function Dashboard({ onBackToLanding }) {
                 ))}
               </div>
             </div>
-
             {/* Additional Configuration Panel */}
             <div className="space-y-3">
               <h3 className="text-xs font-black text-black uppercase tracking-wide">Advanced Settings</h3>
@@ -890,12 +876,12 @@ function Dashboard({ onBackToLanding }) {
             </div>
           </div>
         </aside>
-
         {/* Center - Content based on Active Tab */}
         <section className="flex-1 bg-yellow-100 relative">
           <div className="h-full p-4 pt-2">
             <div className="h-full bg-white border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] rounded-lg overflow-hidden relative mt-2">
               
+              {/* Network Tab Content */}
               {activeTab === 'network' && (
                 <>
                   {/* Network Visualization Header */}
@@ -908,18 +894,18 @@ function Dashboard({ onBackToLanding }) {
                           <span className="text-xs text-black font-black">Live View</span>
                         </div>
                         <div className="flex items-center space-x-2">
-                          <button 
+                          <button
                             onClick={handleScan}
                             disabled={isScanning}
                             className={`px-2 py-1 border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] rounded text-xs text-black font-black transition-all ${
-                              isScanning 
-                                ? 'bg-gray-300 cursor-not-allowed' 
+                              isScanning
+                                ? 'bg-gray-300 cursor-not-allowed'
                                 : 'bg-blue-400 hover:translate-x-1 hover:translate-y-1 hover:shadow-[1px_1px_0px_0px_rgba(0,0,0,1)]'
                             }`}
                           >
                             {isScanning ? 'SCANNING...' : 'SCAN'}
                           </button>
-                          <button 
+                          <button
                             onClick={handleRefresh}
                             className="px-2 py-1 bg-lime-400 border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] rounded text-xs text-black font-black hover:translate-x-1 hover:translate-y-1 hover:shadow-[1px_1px_0px_0px_rgba(0,0,0,1)] transition-all"
                           >
@@ -929,7 +915,6 @@ function Dashboard({ onBackToLanding }) {
                       </div>
                     </div>
                   </div>
-                  
                   {/* Network Visualization Component */}
                   <div className="pt-16 h-full network-visualization">
                     <NetworkVisualization
@@ -944,7 +929,7 @@ function Dashboard({ onBackToLanding }) {
                   </div>
                 </>
               )}
-
+              {/* Analytics Tab Content */}
               {activeTab === 'analytics' && (
                 <>
                   {/* Analytics Header */}
@@ -960,7 +945,7 @@ function Dashboard({ onBackToLanding }) {
                           <button className="px-2 py-1 bg-yellow-400 border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] rounded text-xs text-black font-black hover:translate-x-1 hover:translate-y-1 hover:shadow-[1px_1px_0px_0px_rgba(0,0,0,1)] transition-all">
                             EXPORT
                           </button>
-                          <button 
+                          <button
                             onClick={handleRefresh}
                             className="px-2 py-1 bg-lime-400 border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] rounded text-xs text-black font-black hover:translate-x-1 hover:translate-y-1 hover:shadow-[1px_1px_0px_0px_rgba(0,0,0,1)] transition-all"
                           >
@@ -970,93 +955,51 @@ function Dashboard({ onBackToLanding }) {
                       </div>
                     </div>
                   </div>
-                  
                   {/* Analytics Content */}
                   <div className="pt-16 h-full p-4 overflow-y-auto">
                     <div className="space-y-4">
-                      {/* Key Metrics Overview */}
-                      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                        <div className="bg-cyan-200 border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] rounded-lg p-4 text-center">
-                          <div className="text-2xl font-black text-black mb-1">{metrics.totalTransactions || 67}</div>
-                          <div className="text-xs font-bold text-black uppercase">Total Transactions</div>
-                        </div>
-                        <div className="bg-yellow-200 border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] rounded-lg p-4 text-center">
-                          <div className="text-2xl font-black text-black mb-1">{metrics.dataVolume || '2.4TB'}</div>
-                          <div className="text-xs font-bold text-black uppercase">Data Processed</div>
-                        </div>
-                        <div className="bg-lime-200 border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] rounded-lg p-4 text-center">
-                          <div className="text-2xl font-black text-black mb-1">{metrics.activeUsers || 89}</div>
-                          <div className="text-xs font-bold text-black uppercase">Active Users</div>
-                        </div>
-                        <div className="bg-purple-200 border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] rounded-lg p-4 text-center">
-                          <div className="text-2xl font-black text-black mb-1">{Math.round((metrics.successRate || 0.987) * 100)}%</div>
-                          <div className="text-xs font-bold text-black uppercase">Success Rate</div>
-                        </div>
+                      <div className="bg-purple-200 border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] rounded-lg p-4 text-center">
+                        <div className="text-2xl font-black text-black mb-1">{Math.round((metrics.successRate || 0.987) * 100)}%</div>
+                        <div className="text-xs font-bold text-black uppercase">Success Rate</div>
                       </div>
-
-                      {/* Transaction Volume Chart */}
                       <div className="bg-white border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] rounded-lg p-4">
                         <h3 className="text-lg font-black text-black mb-4">Transaction Volume (24h)</h3>
-                        <div className="flex items-end space-x-2 h-32">
-                          {[65, 89, 45, 78, 92, 67, 83, 76, 94, 56, 88, 72].map((height, index) => (
-                            <div key={index} className="flex-1 bg-gradient-to-t from-cyan-400 to-blue-500 border-2 border-black rounded-t" style={{height: `${height}%`}}>
-                              <div className="text-xs text-white font-black text-center pt-1">{height}</div>
+                        <div className="space-y-3">
+                          {[
+                            { name: 'Financial', value: 45, color: 'bg-green-300' },
+                            { name: 'Weather', value: 30, color: 'bg-blue-300' },
+                            { name: 'IoT', value: 15, color: 'bg-yellow-300' },
+                            { name: 'Research', value: 10, color: 'bg-purple-300' }
+                          ].map((category, index) => (
+                            <div key={index} className="flex items-center space-x-2">
+                              <div className="w-24 text-xs font-bold text-black">{category.name}</div>
+                              <div className="flex-1 bg-gray-200 border-2 border-black rounded-full h-4">
+                                <div className={`${category.color} h-4 rounded-full border-r-2 border-black`} style={{width: `${category.value}%`}}></div>
+                              </div>
+                              <div className="text-xs font-black text-black w-8">{category.value}%</div>
                             </div>
                           ))}
                         </div>
-                        <div className="flex justify-between mt-2 text-xs font-bold text-black">
-                          <span>00:00</span>
-                          <span>06:00</span>
-                          <span>12:00</span>
-                          <span>18:00</span>
-                          <span>24:00</span>
+                      </div>
+                      <div className="bg-white border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] rounded-lg p-4">
+                        <h3 className="text-lg font-black text-black mb-4">Regional Distribution</h3>
+                        <div className="space-y-3">
+                          {[
+                            { region: 'North America', nodes: 847, percentage: 35 },
+                            { region: 'Europe', nodes: 623, percentage: 26 },
+                            { region: 'Asia Pacific', nodes: 534, percentage: 22 },
+                            { region: 'Others', nodes: 412, percentage: 17 }
+                          ].map((region, index) => (
+                            <div key={index} className="flex items-center justify-between p-2 bg-lime-100 border-2 border-black rounded">
+                              <div>
+                                <div className="text-xs font-black text-black">{region.region}</div>
+                                <div className="text-xs font-bold text-black">{region.nodes} nodes</div>
+                              </div>
+                              <div className="text-lg font-black text-black">{region.percentage}%</div>
+                            </div>
+                          ))}
                         </div>
                       </div>
-
-                      {/* Data Categories Breakdown */}
-                      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                        <div className="bg-white border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] rounded-lg p-4">
-                          <h3 className="text-lg font-black text-black mb-4">Data Categories</h3>
-                          <div className="space-y-3">
-                            {[
-                              { name: 'Financial Data', value: 45, color: 'bg-cyan-400' },
-                              { name: 'IoT Sensors', value: 23, color: 'bg-yellow-400' },
-                              { name: 'Research Data', value: 18, color: 'bg-pink-400' },
-                              { name: 'AI Training', value: 14, color: 'bg-purple-400' }
-                            ].map((category, index) => (
-                              <div key={index} className="flex items-center space-x-3">
-                                <div className="w-24 text-xs font-bold text-black">{category.name}</div>
-                                <div className="flex-1 bg-gray-200 border-2 border-black rounded-full h-4">
-                                  <div className={`${category.color} h-4 rounded-full border-r-2 border-black`} style={{width: `${category.value}%`}}></div>
-                                </div>
-                                <div className="text-xs font-black text-black w-8">{category.value}%</div>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-
-                        <div className="bg-white border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] rounded-lg p-4">
-                          <h3 className="text-lg font-black text-black mb-4">Regional Distribution</h3>
-                          <div className="space-y-3">
-                            {[
-                              { region: 'North America', nodes: 847, percentage: 35 },
-                              { region: 'Europe', nodes: 623, percentage: 26 },
-                              { region: 'Asia Pacific', nodes: 534, percentage: 22 },
-                              { region: 'Others', nodes: 412, percentage: 17 }
-                            ].map((region, index) => (
-                              <div key={index} className="flex items-center justify-between p-2 bg-lime-100 border-2 border-black rounded">
-                                <div>
-                                  <div className="text-xs font-black text-black">{region.region}</div>
-                                  <div className="text-xs font-bold text-black">{region.nodes} nodes</div>
-                                </div>
-                                <div className="text-lg font-black text-black">{region.percentage}%</div>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Performance Trends */}
                       <div className="bg-white border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] rounded-lg p-4">
                         <h3 className="text-lg font-black text-black mb-4">Performance Trends (7 days)</h3>
                         <div className="grid grid-cols-3 gap-4">
@@ -1084,7 +1027,6 @@ function Dashboard({ onBackToLanding }) {
             </div>
           </div>
         </section>
-
         {/* Right Sidebar - Metrics & Logs */}
         <aside className="w-80 bg-white border-l-4 border-black shadow-[-8px_0px_0px_0px_rgba(0,0,0,1)] overflow-y-auto max-h-[calc(100vh-100px)] scrollbar-neubrutalism mt-2 mr-2 rounded-tr-lg">
           <div className="p-4 space-y-4">
@@ -1097,7 +1039,6 @@ function Dashboard({ onBackToLanding }) {
                 {activeTab === 'network' ? 'Real-time monitoring & analytics' : 'Data insights & statistics'}
               </p>
             </div>
-
             {activeTab === 'network' && (
               <>
                 {/* Performance Metrics */}
@@ -1108,7 +1049,6 @@ function Dashboard({ onBackToLanding }) {
                   </div>
                   <MetricsDisplay metrics={metrics} lastUpdate={lastUpdate} />
                 </div>
-
                 {/* Resource Usage Charts */}
                 <div className="space-y-3">
                   <h3 className="text-xs font-black text-black uppercase tracking-wide">Resource Usage</h3>
@@ -1133,7 +1073,6 @@ function Dashboard({ onBackToLanding }) {
                         <div className="bg-gradient-to-r from-emerald-400 to-cyan-500 h-2 rounded-full border-r-2 border-black" style={{width: '52%'}}></div>
                       </div>
                     </div>
-
                     <div className="bg-pink-200 border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] rounded-lg p-3">
                       <div className="flex items-center justify-between mb-2">
                         <span className="text-xs text-black font-bold">Network I/O</span>
@@ -1145,7 +1084,6 @@ function Dashboard({ onBackToLanding }) {
                     </div>
                   </div>
                 </div>
-
                 {/* Real-time Activity Log */}
                 <div className="space-y-3">
                   <h3 className="text-xs font-black text-black uppercase tracking-wide">Activity Log</h3>
@@ -1153,7 +1091,6 @@ function Dashboard({ onBackToLanding }) {
                     <RealtimeLog logs={logs} />
                   </div>
                 </div>
-
                 {/* Active Connections */}
                 <div className="space-y-3">
                   <h3 className="text-xs font-black text-black uppercase tracking-wide">Active Connections</h3>
@@ -1192,7 +1129,6 @@ function Dashboard({ onBackToLanding }) {
                     ))}
                   </div>
                 </div>
-
                 {/* Transaction Pool */}
                 <div className="space-y-3">
                   <h3 className="text-xs font-black text-black uppercase tracking-wide">Transaction Pool</h3>
@@ -1202,7 +1138,7 @@ function Dashboard({ onBackToLanding }) {
                         <div className="flex items-center justify-between mb-1">
                           <span className="text-xs text-black font-black">{tx.id}</span>
                           <div className={`w-1.5 h-1.5 rounded-full border border-black ${
-                            tx.status === 'confirmed' ? 'bg-green-500' : 
+                            tx.status === 'confirmed' ? 'bg-green-500' :
                             tx.status === 'processing' ? 'bg-yellow-500' : 'bg-blue-500'
                           }`}></div>
                         </div>
@@ -1220,7 +1156,7 @@ function Dashboard({ onBackToLanding }) {
                         <div className="flex items-center justify-between mb-1">
                           <span className="text-xs text-black font-black">{tx.id}</span>
                           <div className={`w-1.5 h-1.5 rounded-full border border-black ${
-                            tx.status === 'confirmed' ? 'bg-green-500' : 
+                            tx.status === 'confirmed' ? 'bg-green-500' :
                             tx.status === 'confirming' ? 'bg-yellow-500' : 'bg-blue-500'
                           }`}></div>
                         </div>
@@ -1234,7 +1170,6 @@ function Dashboard({ onBackToLanding }) {
                 </div>
               </>
             )}
-
             {activeTab === 'analytics' && (
               <>
                 {/* Quick Stats */}
@@ -1258,7 +1193,6 @@ function Dashboard({ onBackToLanding }) {
                     </div>
                   </div>
                 </div>
-
                 {/* Top Data Providers */}
                 <div className="space-y-3">
                   <h3 className="text-xs font-black text-black uppercase tracking-wide">Top Data Providers</h3>
@@ -1272,8 +1206,8 @@ function Dashboard({ onBackToLanding }) {
                       <div key={index} className="p-2 bg-yellow-200 border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] rounded">
                         <div className="flex items-center justify-between mb-1">
                           <span className="text-xs text-black font-black">{provider.name}</span>
-                          {provider.trend === 'up' ? 
-                            <TrendingUp size={12} className="text-green-600" /> : 
+                          {provider.trend === 'up' ?
+                            <TrendingUp size={12} className="text-green-600" /> :
                             <TrendingDown size={12} className="text-red-600" />
                           }
                         </div>
@@ -1285,7 +1219,6 @@ function Dashboard({ onBackToLanding }) {
                     ))}
                   </div>
                 </div>
-
                 {/* Market Trends */}
                 <div className="space-y-3">
                   <h3 className="text-xs font-black text-black uppercase tracking-wide">Market Trends</h3>
@@ -1312,7 +1245,6 @@ function Dashboard({ onBackToLanding }) {
                     ))}
                   </div>
                 </div>
-
                 {/* Recent Analytics Events */}
                 <div className="space-y-3">
                   <h3 className="text-xs font-black text-black uppercase tracking-wide">Recent Events</h3>
@@ -1344,16 +1276,14 @@ function Dashboard({ onBackToLanding }) {
           </div>
         </aside>
       </main>
-
       {/* Demo Controls Overlay */}
       {showDemoControls && DEMO_CONFIG.DEMO_MODE && (
-        <DemoControlPanel 
+        <DemoControlPanel
           onClose={() => setShowDemoControls(false)}
           onScenarioStart={handleScenarioStart}
           currentScenario={currentScenario}
         />
       )}
-
       {/* Footer Status Bar */}
       <footer className="bg-white border-t-4 border-black shadow-[0px_-8px_0px_0px_rgba(0,0,0,1)] px-4 py-2">
         <div className="flex justify-between items-center text-xs font-black">
@@ -1372,14 +1302,13 @@ function Dashboard({ onBackToLanding }) {
           )}
         </div>
       </footer>
-
       {/* Wallet History Modal */}
       {showWalletHistory && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-yellow-300 border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] p-6 rounded-lg max-w-2xl w-full max-h-[80vh] overflow-auto">
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-xl font-black text-black">💰 WALLET FUNDING HISTORY</h2>
-              <button 
+              <button
                 onClick={() => setShowWalletHistory(false)}
                 className="px-3 py-1 bg-red-300 text-black font-black border-2 border-black rounded shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:translate-x-1 hover:translate-y-1 hover:shadow-[1px_1px_0px_0px_rgba(0,0,0,1)]"
               >
