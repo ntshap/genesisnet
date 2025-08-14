@@ -44,6 +44,7 @@ import DemoControlPanel from './components/DemoControlPanel';
 import useInteractiveDemo from './hooks/useInteractiveDemo';
 import { DEMO_CONFIG } from './utils/demoConfig';
 import AccountSettingsPanel from './components/AccountSettingsPanel.jsx';
+import SettingsIcon from './components/shared/SettingsIcon.jsx';
 import NotificationCenter from './components/NotificationCenter/NotificationCenter.jsx';
 
 function Dashboard({ onBackToLanding }) {
@@ -314,20 +315,20 @@ function Dashboard({ onBackToLanding }) {
   
 
   return (
-    <div className="min-h-screen bg-yellow-50 text-black relative">
+  <div className="min-h-screen bg-yellow-50 text-black relative flex flex-col">
       {/* Guided tour overlay */}
       <Joyride
-        steps={tourSteps}
-        run={runTour}
-        continuous
-        showSkipButton
-        showProgress
-        scrollToFirstStep
-        disableScrolling
-        spotlightClicks
-        spotlight={true}
-        hideBackButton={false}
-        hideCloseButton={false}
+  steps={tourSteps}
+  run={runTour}
+  continuous
+  showSkipButton
+  showProgress
+  scrollToFirstStep={true}
+  scrollToStep={true}
+  disableScrolling={false}
+  spotlight={true}
+  hideBackButton={false}
+  hideCloseButton={false}
         styles={{
           options: {
             zIndex: 10000,
@@ -395,6 +396,7 @@ function Dashboard({ onBackToLanding }) {
         }}
         floaterProps={{
           disableAnimation: true,
+          disableOverlayAnimation: true,
           styles: {
             floater: {
               filter: 'drop-shadow(0px 0px 5px rgba(0,0,0,0.3))'
@@ -471,12 +473,12 @@ function Dashboard({ onBackToLanding }) {
       )}
 
       {/* Top Navigation Bar */}
-      <header className="relative z-50 bg-white border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]">
-        <div className="px-4 py-3 flex items-center justify-between">
+      <header className="relative z-50 bg-white border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] w-full">
+        <div className="px-2 py-2 flex flex-col md:flex-row md:items-center md:justify-between gap-2 w-full">
           {/* Left: Logo and Title */}
-          <div className="flex items-center space-x-3">
+          <div className="flex items-center space-x-2 md:space-x-3">
             <div className="w-16 h-16 rounded-lg bg-yellow-400 border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] p-1.5 relative flex items-center justify-center">
-              <div className="w-full h-full rounded-lg bg-white border-2 border-black flex items-center justify-center">
+              <div className="w-full h-full rounded-lg bg-white border-2 border-black flex items-center justify-center cursor-pointer" onClick={onBackToLanding}>
                 <img src={genesisLogo} alt="GenesisNet" className="w-10 h-10 object-contain" />
               </div>
             </div>
@@ -487,7 +489,7 @@ function Dashboard({ onBackToLanding }) {
           </div>
           
           {/* Center: Navigation Buttons */}
-          <div className="flex items-center space-x-2">
+          <div className="flex flex-wrap items-center gap-2 md:space-x-2">
             <button
               onClick={() => setActiveTab('network')}
               className={`flex items-center space-x-2 px-3 py-2 rounded-lg text-black text-sm font-black border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all ${
@@ -512,40 +514,10 @@ function Dashboard({ onBackToLanding }) {
           </div>
 
           {/* Right: User, Wallet, and Status Controls */}
-          <div className="flex items-center space-x-3">
+          <div className="flex flex-wrap items-center gap-2 md:space-x-3">
             <NotificationCenter />
-            <div className="relative group">
-              <button
-                className="flex items-center space-x-2 px-3 py-2 rounded-lg bg-lime-300 text-black text-sm font-black border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:translate-x-1 hover:translate-y-1 hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all"
-                onClick={() => setShowSettingsPanel(true)}
-              >
-                <User size={16} />
-                <span>{user?.username || 'User'}</span>
-              </button>
-              <div className="absolute right-0 mt-2 w-48 bg-white border-2 border-black rounded-lg shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hidden group-hover:block z-50">
-                <div className="p-2">
-                  <button
-                    onClick={() => {
-                      logout();
-                      onBackToLanding();
-                    }}
-                    className="w-full text-left px-3 py-2 text-sm font-bold text-black hover:bg-yellow-100 rounded flex items-center"
-                  >
-                    <ArrowLeft size={14} className="mr-2" />
-                    Logout
-                  </button>
-                </div>
-              </div>
-            </div>
-            {onBackToLanding && (
-              <button
-                onClick={onBackToLanding}
-                className="flex items-center space-x-2 px-3 py-2 rounded-lg bg-purple-300 text-black text-sm font-black border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:translate-x-1 hover:translate-y-1 hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all"
-              >
-                <ArrowLeft size={16} />
-                <span>Landing</span>
-              </button>
-            )}
+            <SettingsIcon onClick={() => setShowSettingsPanel(true)} />
+            {/* Landing button removed. Navigation now on logo. */}
             <button
               onClick={() => setRunTour(true)}
               data-tour="header-tour-button"
@@ -556,19 +528,21 @@ function Dashboard({ onBackToLanding }) {
               <span>Tour</span>
             </button>
             <div className="flex items-center space-x-2">
-              <div className="flex items-center space-x-2 px-3 py-1.5 rounded-lg bg-yellow-300 border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] wallet-balance">
-                <ShoppingCart size={14} />
-                <span className="text-xs text-black font-black">{walletBalance.toFixed(2)} ICP</span>
-                {pendingPayments.length > 0 && (
-                  <div className="w-2 h-2 rounded-full bg-orange-500 border border-black animate-pulse"></div>
-                )}
-              </div>
               <button
                 onClick={() => setShowWalletHistory(!showWalletHistory)}
-                className="px-2 py-1.5 rounded-lg bg-blue-300 text-black text-xs font-black border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:translate-x-1 hover:translate-y-1 hover:shadow-[1px_1px_0px_0px_rgba(0,0,0,1)] transition-all"
+                className="flex items-center justify-center w-10 h-10 rounded-lg bg-yellow-300 border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:bg-yellow-400 transition-all"
+                aria-label="Show wallet balance"
               >
-                💰
+                <ShoppingCart size={20} />
               </button>
+              {showWalletHistory && (
+                <div className="flex items-center px-3 py-1.5 rounded-lg bg-yellow-300 border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] wallet-balance ml-2">
+                  <span className="text-xs text-black font-black">{walletBalance.toFixed(2)} ICP</span>
+                  {pendingPayments.length > 0 && (
+                    <div className="w-2 h-2 rounded-full bg-orange-500 border border-black animate-pulse ml-2"></div>
+                  )}
+                </div>
+              )}
             </div>
             <div className="flex items-center space-x-2 px-3 py-1.5 rounded-lg bg-lime-300 border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
               <div className={`w-2 h-2 rounded-full ${
@@ -1286,21 +1260,14 @@ function Dashboard({ onBackToLanding }) {
       )}
       {/* Footer Status Bar */}
       <footer className="bg-white border-t-4 border-black shadow-[0px_-8px_0px_0px_rgba(0,0,0,1)] px-4 py-2">
-        <div className="flex justify-between items-center text-xs font-black">
-          <div className="flex items-center space-x-4">
-            <span className="text-black">STATUS: <span className="text-green-600">{agentStatus?.toUpperCase()}</span></span>
-            <span className="text-black">MODE: <span className="text-yellow-600">{isMockMode ? 'TRAINING' : 'LIVE'}</span></span>
-            {lastUpdate && (
-              <span className="text-black">UPDATED: <span className="text-cyan-600">{lastUpdate.toLocaleTimeString()}</span></span>
+          <div className="flex justify-between items-center text-xs font-black">
+            {/* STATUS and UPDATED display removed as per user request */}
+            {DEMO_CONFIG.DEMO_MODE && (
+              <div className="flex items-center space-x-2">
+                <span className="text-purple-600">DEMO MODE ACTIVE</span>
+              </div>
             )}
           </div>
-          
-          {DEMO_CONFIG.DEMO_MODE && (
-            <div className="flex items-center space-x-2">
-              <span className="text-purple-600">DEMO MODE ACTIVE</span>
-            </div>
-          )}
-        </div>
       </footer>
       {/* Wallet History Modal */}
       {showWalletHistory && (
@@ -1333,7 +1300,7 @@ function Dashboard({ onBackToLanding }) {
                           <div className="text-xs text-gray-600">{funding.description}</div>
                           <div className="text-xs text-gray-500">{new Date(funding.timestamp).toLocaleDateString()}</div>
                         </div>
-                        <div className="font-black text-green-600">+{funding.amount.toFixed(2)} ICP</div>
+                        <div className="font-black text-green-600">+{typeof funding.amount === 'number' && !isNaN(funding.amount) ? funding.amount.toFixed(2) : '0.00'} ICP</div>
                       </div>
                     ))}
                   </div>
@@ -1353,7 +1320,7 @@ function Dashboard({ onBackToLanding }) {
                           <div className="text-xs text-gray-600">{payment.dataType} - {payment.records} records</div>
                           <div className="text-xs text-gray-500">{new Date(payment.timestamp).toLocaleDateString()}</div>
                         </div>
-                        <div className="font-black text-red-600">-{payment.amount.toFixed(2)} ICP</div>
+                        <div className="font-black text-red-600">-{typeof payment.amount === 'number' && !isNaN(payment.amount) ? payment.amount.toFixed(2) : '0.00'} ICP</div>
                       </div>
                     ))}
                   </div>

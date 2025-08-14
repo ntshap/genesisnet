@@ -85,7 +85,34 @@ const ControlPanel = ({
           </div>
         </div>
       )}
-      {/* Connection Status panel removed as requested */}
+
+      {/* Connection Status */}
+      <div className="bg-blue-200 border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] rounded-lg p-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-3">
+            <div className={`w-3 h-3 rounded-full border border-black ${
+              connectionStatus?.isInitialized 
+                ? 'bg-green-500' 
+                : 'bg-yellow-500'
+            }`}></div>
+            <div>
+              <span className="text-sm font-black text-black">
+                {connectionStatus?.fallbackToMock ? 'Live Preview' : 'Production'}
+              </span>
+              <p className="text-xs text-gray-700 font-bold">
+                {connectionStatus?.isInitialized ? 'Connected' : 'Disconnected'}
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={onRefresh}
+            className="p-2 bg-white border-2 border-black rounded-lg shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:translate-x-1 hover:translate-y-1 hover:shadow-[1px_1px_0px_0px_rgba(0,0,0,1)] transition-all"
+            title="Refresh connection"
+          >
+            <RefreshCw size={16} className="text-black" />
+          </button>
+        </div>
+      </div>
 
       {/* Quick Presets */}
       <div className="space-y-3">
