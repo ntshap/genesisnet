@@ -23,7 +23,13 @@ import {
   RefreshCw,
   Image,
   BarChart3,
-  Cpu
+  Cpu,
+  Bot,
+  Drone,
+  Rocket,
+  Target,
+  Eye,
+  EyeOff
 } from 'lucide-react';
 
 const NetworkVisualization = ({ agentStatus, networkData, onNegotiate, isLoading }) => {
@@ -35,6 +41,9 @@ const NetworkVisualization = ({ agentStatus, networkData, onNegotiate, isLoading
   const [infoCardPosition, setInfoCardPosition] = useState({ x: 16, y: 16 });
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+  const [trackingMode, setTrackingMode] = useState(false);
+  const [activeAgent, setActiveAgent] = useState(null);
+  const [agentPositions, setAgentPositions] = useState({});
 
   useEffect(() => {
     if (isLoading) return;
@@ -45,6 +54,66 @@ const NetworkVisualization = ({ agentStatus, networkData, onNegotiate, isLoading
     setIsInitialized(true);
     // Jangan reset posisi zoom/pan setiap render
   }, [networkData, agentStatus, isLoading]);
+
+  // Simulate autonomous agent movement
+  useEffect(() => {
+    if (!isInitialized) return;
+
+    const agentTypes = ['Bot', 'Drone', 'Rocket'];
+    const nodes = ['data-providers', 'icp-gateway', 'data-request-agent', 'search-engine', 'smart-contracts', 'storage-system', 'negotiation-platform'];
+    
+    const moveAgent = () => {
+      const randomAgent = agentTypes[Math.floor(Math.random() * agentTypes.length)];
+      const randomNode = nodes[Math.floor(Math.random() * nodes.length)];
+      
+      setActiveAgent({
+        type: randomAgent,
+        targetNode: randomNode,
+        timestamp: Date.now()
+      });
+
+      // Update agent positions for tracking
+      setAgentPositions(prev => ({
+        ...prev,
+        [randomAgent]: randomNode
+      }));
+
+      // Auto-track if tracking mode is enabled
+      if (trackingMode) {
+        setTimeout(() => {
+          focusOnNode(randomNode);
+        }, 500);
+      }
+    };
+
+    const interval = setInterval(moveAgent, 3000 + Math.random() * 2000);
+    return () => clearInterval(interval);
+  }, [isInitialized, trackingMode]);
+
+  const focusOnNode = (nodeId) => {
+    const svg = d3.select(svgRef.current);
+    const node = svg.select(`[data-node-id="${nodeId}"]`);
+    
+    if (!node.empty()) {
+      const nodeElement = node.node();
+      const bbox = nodeElement.getBBox();
+      const container = svg.node().parentElement;
+      const containerRect = container.getBoundingClientRect();
+      
+      const targetX = containerRect.width / 2 - (bbox.x + bbox.width / 2);
+      const targetY = containerRect.height / 2 - (bbox.y + bbox.height / 2);
+      
+      const newTransform = d3.zoomIdentity
+        .translate(targetX, targetY)
+        .scale(1.2);
+      
+      svg.transition()
+        .duration(1000)
+        .call(d3.zoom().transform, newTransform);
+      
+      setZoomTransform(newTransform);
+    }
+  };
 
   const initializeNetwork = () => {
     const svg = d3.select(svgRef.current);
@@ -98,100 +167,64 @@ const NetworkVisualization = ({ agentStatus, networkData, onNegotiate, isLoading
       [ // Tier 1
         { id: 'data-providers', name: 'Data Providers', subtitle: 'Supply market data', type: 'standard', color: '#d97706', icon: Database, priority: 'High' },
         { id: 'icp-gateway', name: 'ICP Gateway', subtitle: 'Blockchain interface', type: 'standard', color: '#1d4ed8', icon: Network, priority: 'High' },
-        { id: 'external-apis', name: 'External APIs', subtitle: 'Third-party data', type: 'standard', color: '#7c3aed', icon: Globe, priority: 'Medium' }
+        { id: 'security-layer', name: 'Security Layer', subtitle: 'Identity verification', type: 'standard', color: '#dc2626', icon: Shield, priority: 'Critical' },
       ],
       [ // Tier 2
-        { id: 'core', name: 'GenesisNet Core', subtitle: 'Central orchestrator', type: 'core', color: '#059669', icon: Zap, priority: 'Critical' }
+        { id: 'data-request-agent', name: 'Data Request Agent', subtitle: 'Autonomous negotiator', type: 'core', color: '#059669', icon: Bot, priority: 'Critical' },
+        { id: 'search-engine', name: 'Search Engine', subtitle: 'Data discovery', type: 'service', color: '#7c3aed', icon: Globe, priority: 'High' },
+        { id: 'smart-contracts', name: 'Smart Contracts', subtitle: 'Transaction execution', type: 'blockchain', color: '#0891b2', icon: Code, priority: 'High' },
       ],
       [ // Tier 3
-        { id: 'auth-system', name: 'Authentication', subtitle: 'Identity verification', type: 'standard', color: '#d97706', icon: Shield, priority: 'High' },
-        { id: 'search-engine', name: 'Search Engine', subtitle: 'Data discovery', type: 'standard', color: '#7c3aed', icon: Globe, priority: 'Medium' },
-        { id: 'validator', name: 'Validator Network', subtitle: 'Transaction validation', type: 'standard', color: '#dc2626', icon: Shield, priority: 'High' }
+        { id: 'negotiation-platform', name: 'Negotiation Platform', subtitle: 'Deal management', type: 'negotiation', color: '#f59e0b', icon: Handshake, priority: 'High' },
+        { id: 'storage-system', name: 'Storage System', subtitle: 'Secure data vault', type: 'storage', color: '#6b7280', icon: Archive, priority: 'Medium' },
+        { id: 'analytics-engine', name: 'Analytics Engine', subtitle: 'Data processing', type: 'service', color: '#ec4899', icon: BarChart3, priority: 'Medium' },
       ],
       [ // Tier 4
-        { id: 'analytics', name: 'Analytics Engine', subtitle: 'Data analysis', type: 'standard', color: '#0891b2', icon: BarChart3, priority: 'Medium' },
-        { id: 'compute-cluster', name: 'Compute Cluster', subtitle: 'Processing power', type: 'standard', color: '#059669', icon: Cpu, priority: 'High' },
-        { id: 'ml-engine', name: 'ML Engine', subtitle: 'Machine learning', type: 'standard', color: '#7c3aed', icon: Zap, priority: 'Medium' }
-      ],
-      [ // Tier 5
-        { id: 'smart-contracts', name: 'Smart Contracts', subtitle: 'Execute transactions', type: 'standard', color: '#dc2626', icon: Code, priority: 'High' },
-        { id: 'negotiation', name: 'Negotiation Hub', subtitle: 'Deal management', type: 'standard', color: '#0891b2', icon: Handshake, priority: 'Medium' }
-      ],
-      [ // Tier 6
-        { id: 'data-storage', name: 'Data Storage', subtitle: 'Transaction records', type: 'standard', color: '#65a30d', icon: Archive, priority: 'Medium' },
-        { id: 'backup-system', name: 'Backup System', subtitle: 'Data redundancy', type: 'standard', color: '#65a30d', icon: Database, priority: 'Medium' }
+        { id: 'quality-assurance', name: 'Quality Assurance', subtitle: 'Data validation', type: 'service', color: '#10b981', icon: Activity, priority: 'High' },
+        { id: 'payment-processor', name: 'Payment Processor', subtitle: 'Transaction handling', type: 'blockchain', color: '#f97316', icon: DollarSign, priority: 'High' },
+        { id: 'monitoring-dashboard', name: 'Monitoring Dashboard', subtitle: 'System oversight', type: 'service', color: '#8b5cf6', icon: Cpu, priority: 'Medium' },
       ]
     ];
 
-    // Calculate grid positions for each node
-    const verticalSpacing = height / (tiers.length + 1); // generous vertical spacing
-    const horizontalPadding = 80; // px, for left/right margin
     const workflowNodes = [];
-    tiers.forEach((tier, tierIdx) => {
-      const y = verticalSpacing * (tierIdx + 1);
-      const count = tier.length;
-      const hSpace = (width - 2 * horizontalPadding) / (count - 1 || 1);
-      tier.forEach((node, nodeIdx) => {
+    const tierHeight = 120;
+    const startY = 80;
+
+    tiers.forEach((tier, tierIndex) => {
+      const tierY = startY + tierIndex * tierHeight;
+      const tierWidth = tier.length * 200;
+      const startX = (width - tierWidth) / 2;
+
+      tier.forEach((node, nodeIndex) => {
+        const nodeX = startX + nodeIndex * 200 + 100;
+        const nodeY = tierY;
+        
         workflowNodes.push({
           ...node,
-          x: count === 1 ? width / 2 : horizontalPadding + nodeIdx * hSpace,
-          y
+          x: nodeX,
+          y: nodeY,
+          status: 'active',
+          tier: tierIndex
         });
       });
     });
 
-    // Define clearer workflow connections
+    // Define connections with enhanced flow types
     const workflowConnections = [
-      // Input to core (tier 1 -> tier 2)
-      { source: 'data-providers', target: 'core', type: 'flow', label: 'Data Request', color: '#059669' },
-      { source: 'icp-gateway', target: 'core', type: 'flow', label: 'ICP Query', color: '#059669' },
-      { source: 'external-apis', target: 'core', type: 'flow', label: 'API Data', color: '#059669' },
-      
-      // Core to services (tier 2 -> tier 3)
-      { source: 'core', target: 'auth-system', type: 'flow', label: 'Authenticate', color: '#d97706' },
-      { source: 'core', target: 'search-engine', type: 'flow', label: 'Search Data', color: '#7c3aed' },
-      { source: 'core', target: 'validator', type: 'flow', label: 'Validate', color: '#dc2626' },
-      
-      // Services to processing (tier 3 -> tier 4)
-      { source: 'auth-system', target: 'analytics', type: 'flow', label: 'Analyze User', color: '#0891b2' },
-      { source: 'search-engine', target: 'compute-cluster', type: 'flow', label: 'Process Search', color: '#059669' },
-      { source: 'validator', target: 'ml-engine', type: 'flow', label: 'ML Validation', color: '#7c3aed' },
-      
-      // Processing to execution (tier 4 -> tier 5)
-      { source: 'analytics', target: 'smart-contracts', type: 'flow', label: 'Contract Data', color: '#dc2626' },
-      { source: 'compute-cluster', target: 'smart-contracts', type: 'flow', label: 'Compute Result', color: '#dc2626' },
-      { source: 'ml-engine', target: 'negotiation', type: 'flow', label: 'ML Insights', color: '#0891b2' },
-      
-      // Execution to storage (tier 5 -> tier 6)
-      { source: 'smart-contracts', target: 'data-storage', type: 'flow', label: 'Store Transaction', color: '#65a30d' },
-      { source: 'negotiation', target: 'data-storage', type: 'flow', label: 'Save Deal Record', color: '#65a30d' },
-      { source: 'smart-contracts', target: 'backup-system', type: 'flow', label: 'Backup Contract', color: '#65a30d' },
-      { source: 'negotiation', target: 'backup-system', type: 'flow', label: 'Backup Deal', color: '#65a30d' },
-      
-      // Cross-tier connections for complex workflow
-      { source: 'data-providers', target: 'analytics', type: 'flow', label: 'Raw Data', color: '#0891b2' },
-      { source: 'validator', target: 'smart-contracts', type: 'flow', label: 'Validated Data', color: '#dc2626' },
-      { source: 'compute-cluster', target: 'negotiation', type: 'flow', label: 'Computed Price', color: '#0891b2' }
+      { source: 'data-providers', target: 'data-request-agent', type: 'flow', color: '#22d3ee', label: 'Data Supply' },
+      { source: 'icp-gateway', target: 'data-request-agent', type: 'flow', color: '#1d4ed8', label: 'Blockchain' },
+      { source: 'security-layer', target: 'data-request-agent', type: 'flow', color: '#dc2626', label: 'Auth' },
+      { source: 'data-request-agent', target: 'search-engine', type: 'flow', color: '#059669', label: 'Discovery' },
+      { source: 'search-engine', target: 'smart-contracts', type: 'flow', color: '#7c3aed', label: 'Match' },
+      { source: 'smart-contracts', target: 'negotiation-platform', type: 'flow', color: '#0891b2', label: 'Deal' },
+      { source: 'negotiation-platform', target: 'storage-system', type: 'flow', color: '#f59e0b', label: 'Store' },
+      { source: 'storage-system', target: 'analytics-engine', type: 'flow', color: '#6b7280', label: 'Process' },
+      { source: 'analytics-engine', target: 'quality-assurance', type: 'flow', color: '#ec4899', label: 'Validate' },
+      { source: 'quality-assurance', target: 'payment-processor', type: 'flow', color: '#10b981', label: 'Pay' },
+      { source: 'payment-processor', target: 'monitoring-dashboard', type: 'flow', color: '#f97316', label: 'Monitor' },
     ];
 
-    // Create arrow markers for flow direction
-    const defs = svg.append('defs');
-    
-    defs.append('marker')
-      .attr('id', 'arrowhead')
-      .attr('viewBox', '0 0 10 10')
-      .attr('refX', 8)
-      .attr('refY', 3)
-      .attr('markerWidth', 6)
-      .attr('markerHeight', 6)
-      .attr('orient', 'auto')
-      .append('path')
-      .attr('d', 'M 0 0 L 10 3 L 0 6 Z')
-      .attr('fill', '#000000')
-      .attr('stroke', '#000000')
-      .attr('stroke-width', 1);
-
-    // Draw connections with enhanced styling and colors
+    // Draw connections with enhanced visual effects
     const connectionGroup = mainGroup.append('g').attr('class', 'connections');
     
     workflowConnections.forEach(conn => {
@@ -209,8 +242,8 @@ const NetworkVisualization = ({ agentStatus, networkData, onNegotiate, isLoading
           .attr('stroke-width', 3)
           .attr('opacity', 0.9);
 
-        // Simplified connection points
-        connectionGroup.append('circle')
+        // Enhanced connection points with pulsing effect
+        const sourcePoint = connectionGroup.append('circle')
           .attr('cx', sourceNode.x)
           .attr('cy', sourceNode.y + 28)
           .attr('r', 3)
@@ -218,13 +251,26 @@ const NetworkVisualization = ({ agentStatus, networkData, onNegotiate, isLoading
           .attr('stroke', '#ffffff')
           .attr('stroke-width', 2);
 
-        connectionGroup.append('circle')
+        const targetPoint = connectionGroup.append('circle')
           .attr('cx', targetNode.x)
           .attr('cy', targetNode.y - 28)
           .attr('r', 3)
           .attr('fill', conn.color || '#000000')
           .attr('stroke', '#ffffff')
           .attr('stroke-width', 2);
+
+        // Add pulsing animation to connection points
+        const pulseAnimation = () => {
+          sourcePoint
+            .transition()
+            .duration(1000)
+            .attr('r', 6)
+            .transition()
+            .duration(1000)
+            .attr('r', 3)
+            .on('end', pulseAnimation);
+        };
+        pulseAnimation();
 
         // Cleaner connection labels
         const midX = (sourceNode.x + targetNode.x) / 2;
@@ -256,7 +302,7 @@ const NetworkVisualization = ({ agentStatus, networkData, onNegotiate, isLoading
       }
     });
 
-    // Draw consistent card-based nodes with clean, readable text
+    // Draw consistent card-based nodes with enhanced visual effects
     const nodeGroup = mainGroup.append('g').attr('class', 'nodes');
     
     workflowNodes.forEach(node => {
@@ -265,10 +311,11 @@ const NetworkVisualization = ({ agentStatus, networkData, onNegotiate, isLoading
       const cardHeight = 55; // Reduced height for better spacing
       
       const nodeContainer = nodeGroup.append('g')
-        .attr('transform', `translate(${node.x - cardWidth/2}, ${node.y - cardHeight/2})`);
+        .attr('transform', `translate(${node.x - cardWidth/2}, ${node.y - cardHeight/2})`)
+        .attr('data-node-id', node.id);
 
-      // Clean card shadow
-      nodeContainer.append('rect')
+      // Enhanced card shadow with animation
+      const shadow = nodeContainer.append('rect')
         .attr('x', 3)
         .attr('y', 3)
         .attr('width', cardWidth)
@@ -288,6 +335,34 @@ const NetworkVisualization = ({ agentStatus, networkData, onNegotiate, isLoading
         .attr('stroke-width', 3)
         .attr('rx', 6);
 
+            // Add lightning effect for active nodes
+      if (activeAgent && activeAgent.targetNode === node.id) {
+        // Lightning bolt effect
+        const lightning = nodeContainer.append('path')
+          .attr('d', 'M-10,-10 L-5,-5 L-8,0 L-3,5 L-10,10 L-5,5 L-8,0 L-3,-5 Z')
+          .attr('fill', '#ffff00')
+          .attr('stroke', '#ff6600')
+          .attr('stroke-width', 2)
+          .attr('opacity', 0)
+          .attr('transform', `translate(${cardWidth + 10}, ${cardHeight/2})`);
+
+        // Lightning animation
+        lightning
+          .transition()
+          .duration(200)
+          .attr('opacity', 1)
+          .transition()
+          .duration(200)
+          .attr('opacity', 0)
+          .transition()
+          .duration(200)
+          .attr('opacity', 1)
+          .transition()
+          .duration(200)
+          .attr('opacity', 0)
+          .on('end', () => lightning.remove());
+      }
+
       // Clean header
       const headerHeight = 16;
       nodeContainer.append('rect')
@@ -298,15 +373,28 @@ const NetworkVisualization = ({ agentStatus, networkData, onNegotiate, isLoading
         .attr('fill', 'rgba(0,0,0,0.1)')
         .attr('rx', 6);
 
-      // Status indicator
+      // Status indicator with enhanced animation
       const statusColor = node.status === 'active' ? '#22c55e' : '#ef4444';
-      nodeContainer.append('circle')
+      const statusIndicator = nodeContainer.append('circle')
         .attr('cx', cardWidth - 10)
         .attr('cy', 8)
         .attr('r', 4)
         .attr('fill', statusColor)
         .attr('stroke', '#000000')
         .attr('stroke-width', 1);
+
+      // Pulsing animation for status indicator
+      const statusPulse = () => {
+        statusIndicator
+          .transition()
+          .duration(1000)
+          .attr('r', 6)
+          .transition()
+          .duration(1000)
+          .attr('r', 4)
+          .on('end', statusPulse);
+      };
+      statusPulse();
 
       // Priority badge
       const priorityColor = {
@@ -336,9 +424,9 @@ const NetworkVisualization = ({ agentStatus, networkData, onNegotiate, isLoading
         .attr('fill', '#ffffff')
         .text(node.priority.toUpperCase());
 
-      // Icon with consistent positioning
+      // Enhanced icon with robot/drone icons for agents
       const IconComponent = node.icon;
-      nodeContainer.append('foreignObject')
+      const iconSvg = nodeContainer.append('foreignObject')
         .attr('x', 8)
         .attr('y', 18)
         .attr('width', 18)
@@ -348,8 +436,20 @@ const NetworkVisualization = ({ agentStatus, networkData, onNegotiate, isLoading
         .style('height', '18px')
         .style('display', 'flex')
         .style('align-items', 'center')
-        .style('justify-content', 'center')
-        .html(`<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        .style('justify-content', 'center');
+
+      // Use robot/drone icons for agent nodes
+      if (node.id === 'data-request-agent') {
+        iconSvg.html(`<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 8V4H8"></path>
+          <rect width="16" height="12" x="4" y="8" rx="2"></rect>
+          <path d="M2 14h2"></path>
+          <path d="M20 14h2"></path>
+          <path d="M15 13v2"></path>
+          <path d="M9 13v2"></path>
+        </svg>`);
+      } else {
+        iconSvg.html(`<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
           ${IconComponent === Database ? '<ellipse cx="12" cy="5" rx="9" ry="3"></ellipse><path d="M5 12c0 1.657 3.134 3 7 3s7-1.343 7-3"></path><path d="M5 5v14c0 1.657 3.134 3 7 3s7-1.343 7-3V5"></path>' :
             IconComponent === Network ? '<rect x="16" y="16" width="6" height="6" rx="1"></rect><rect x="2" y="16" width="6" height="6" rx="1"></rect><rect x="9" y="2" width="6" height="6" rx="1"></rect><path d="m5 16 7-10"></path><path d="m19 16-7-10"></path>' :
             IconComponent === Zap ? '<polygon points="13,2 3,14 12,14 11,22 21,10 12,10 13,2"></polygon>' :
@@ -361,6 +461,7 @@ const NetworkVisualization = ({ agentStatus, networkData, onNegotiate, isLoading
             '<circle cx="12" cy="12" r="10"></circle>'
           }
         </svg>`);
+      }
 
       // Main title - compact but readable
       nodeContainer.append('text')
@@ -414,7 +515,7 @@ const NetworkVisualization = ({ agentStatus, networkData, onNegotiate, isLoading
         });
     });
 
-    // Add workflow flow indicators (animated dots) for card-based layout
+    // Enhanced flow indicators with robot/drone agents
     const flowGroup = mainGroup.append('g').attr('class', 'flow-indicators');
     
     workflowConnections.forEach((conn, index) => {
@@ -422,30 +523,74 @@ const NetworkVisualization = ({ agentStatus, networkData, onNegotiate, isLoading
       const targetNode = workflowNodes.find(n => n.id === conn.target);
       
       if (sourceNode && targetNode && conn.type === 'flow') {
-        const flowDot = flowGroup.append('circle')
-          .attr('r', 3) // Clean size
-          .attr('fill', conn.color || '#22d3ee')
-          .attr('stroke', '#ffffff')
-          .attr('stroke-width', 2)
+        // Create agent icon that moves along the connection
+        const agentGroup = flowGroup.append('g')
           .attr('opacity', 0);
 
-        const animateFlow = () => {
-          flowDot
-            .attr('cx', sourceNode.x)
-            .attr('cy', sourceNode.y + 28)
+        // Random agent type for variety
+        const agentTypes = ['Bot', 'Drone', 'Rocket'];
+        const agentType = agentTypes[Math.floor(Math.random() * agentTypes.length)];
+        
+        // Agent icon
+        const agentIcon = agentGroup.append('foreignObject')
+          .attr('width', 20)
+          .attr('height', 20)
+          .append('xhtml:div')
+          .style('width', '20px')
+          .style('height', '20px')
+          .style('display', 'flex')
+          .style('align-items', 'center')
+          .style('justify-content', 'center');
+
+        // Set agent icon based on type
+        if (agentType === 'Bot') {
+          agentIcon.html(`<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 8V4H8"></path>
+            <rect width="16" height="12" x="4" y="8" rx="2"></rect>
+            <path d="M2 14h2"></path>
+            <path d="M20 14h2"></path>
+            <path d="M15 13v2"></path>
+            <path d="M9 13v2"></path>
+          </svg>`);
+        } else if (agentType === 'Drone') {
+          agentIcon.html(`<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M14.5 17.5L3 6V2h4l11.5 11.5"></path>
+            <path d="M13 19l6-6"></path>
+            <path d="M16 16h4v4"></path>
+          </svg>`);
+        } else {
+          agentIcon.html(`<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M4.5 16.5c-1.5 1.5-1.5 3.5 0 5s3.5 1.5 5 0L21 7"></path>
+            <path d="M12 15l-3-3a2 2 0 0 1 0-3l5-5"></path>
+            <path d="M22 21l-5-5"></path>
+            <path d="M14 11l4 4"></path>
+          </svg>`);
+        }
+
+        // Agent background circle
+        agentGroup.append('circle')
+          .attr('r', 12)
+          .attr('fill', conn.color || '#22d3ee')
+          .attr('stroke', '#ffffff')
+          .attr('stroke-width', 2);
+
+        const animateAgent = () => {
+          agentGroup
+            .attr('transform', `translate(${sourceNode.x}, ${sourceNode.y + 28})`)
             .attr('opacity', 1)
             .transition()
-            .duration(1500 + Math.random() * 500)
+            .duration(2000 + Math.random() * 1000)
             .ease(d3.easeLinear)
-            .attr('cx', targetNode.x)
-            .attr('cy', targetNode.y - 28)
+            .attr('transform', `translate(${targetNode.x}, ${targetNode.y - 28})`)
+            .transition()
+            .duration(300)
             .attr('opacity', 0)
             .on('end', () => {
-              setTimeout(animateFlow, 1500 + Math.random() * 1000);
+              setTimeout(animateAgent, 2000 + Math.random() * 2000);
             });
         };
 
-        setTimeout(animateFlow, index * 200);
+        setTimeout(animateAgent, index * 500);
       }
     });
   };
@@ -477,6 +622,13 @@ const NetworkVisualization = ({ agentStatus, networkData, onNegotiate, isLoading
     const svg = d3.select(svgRef.current);
     if (svg.node().resetZoom) {
       svg.node().resetZoom();
+    }
+  };
+
+  const toggleTracking = () => {
+    setTrackingMode(!trackingMode);
+    if (!trackingMode && activeAgent) {
+      focusOnNode(activeAgent.targetNode);
     }
   };
 
@@ -534,7 +686,34 @@ const NetworkVisualization = ({ agentStatus, networkData, onNegotiate, isLoading
         >
           {isNegotiating ? 'Negotiating...' : 'Start Negotiation'}
         </button>
+        
+        {/* Tracking Camera Toggle */}
+        <button 
+          onClick={toggleTracking}
+          className={`px-4 py-2 border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] text-black text-sm font-black hover:translate-x-1 hover:translate-y-1 hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all ${
+            trackingMode ? 'bg-purple-400' : 'bg-blue-400'
+          }`}
+        >
+          {trackingMode ? <Eye size={16} /> : <EyeOff size={16} />}
+          {trackingMode ? ' Auto-Track' : ' Manual'}
+        </button>
       </div>
+
+      {/* Active Agent Status */}
+      {activeAgent && (
+        <div className="absolute top-4 left-1/2 transform -translate-x-1/2 z-20 bg-yellow-300 border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] px-4 py-2">
+          <div className="flex items-center space-x-2">
+            <div className="w-6 h-6 bg-white border-2 border-black rounded flex items-center justify-center">
+              {activeAgent.type === 'Bot' ? <Bot size={14} /> : 
+               activeAgent.type === 'Drone' ? <Drone size={14} /> : 
+               <Rocket size={14} />}
+            </div>
+            <span className="font-black text-black">
+              {activeAgent.type} Agent Active at {activeAgent.targetNode}
+            </span>
+          </div>
+        </div>
+      )}
 
       {/* Zoom Controls */}
       <div className="absolute top-4 left-4 z-20 flex flex-col space-y-2">
