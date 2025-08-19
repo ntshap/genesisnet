@@ -1,1 +1,1 @@
-export { default } from './NetworkVisualization_neubrutalism.jsx';
+export { default } from './NetworkVisualization';

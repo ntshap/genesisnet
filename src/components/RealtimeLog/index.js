@@ -1,1 +1,1 @@
-export { default } from './RealtimeLog_neubrutalism.jsx';
+export { default } from './RealtimeLog';

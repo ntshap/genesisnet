@@ -1,1 +1,1 @@
-export { default } from './MetricsDisplay_neubrutalism.jsx';
+export { default } from './MetricsDisplay';

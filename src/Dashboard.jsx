@@ -35,7 +35,7 @@ import {
   HelpCircle
 } from 'lucide-react';
 import ControlPanel from './components/ControlPanel/ControlPanel_neubrutalism';
-import ModeToggle from './components/shared/ModeToggle';
+
 import RealtimeLog from './components/RealtimeLog/RealtimeLog_neubrutalism';
 import MetricsDisplay from './components/MetricsDisplay/MetricsDisplay_neubrutalism';
 import NetworkVisualization from './components/NetworkVisualization/NetworkVisualization_neubrutalism';
@@ -62,7 +62,7 @@ function Dashboard({ onBackToLanding }) {
   });
   
   const [showDemoControls, setShowDemoControls] = useState(DEMO_CONFIG.DEMO_MODE);
-  const [mode, setMode] = useState('training');
+
   const [isScanning, setIsScanning] = useState(false); // Added missing state
   const [runTour, setRunTour] = useState(false);
   const [currentScenario, setCurrentScenario] = useState(null);
@@ -251,140 +251,175 @@ function Dashboard({ onBackToLanding }) {
     return () => window.removeEventListener('keydown', handleKeyPress);
   }, [showDemoControls, currentScenario, handleScenarioStart, handleRefresh]);
 
-  // Guided tour steps definition - direct dashboard features explanation
+  // Enhanced tour steps with clearer instructions and better targeting
   const tourSteps = [
     {
       target: '[data-tour="search-input"]',
-      content: "Enter your search queries here to generate content from the neural network.",
+      content: "🔍 Search Input: Masukkan pertanyaan atau kata kunci di sini untuk mencari data dari jaringan neural. Contoh: 'weather data Jakarta' atau 'stock prices 2024'",
       placement: "bottom",
       disableBeacon: true,
       spotlightClicks: false
     },
     {
       target: '[data-tour="start-agent-button"]',
-      content: "Click this button to start the agent and begin generating content based on your query.",
+      content: "🚀 Start Agent: Klik tombol ini untuk memulai agen AI dan mulai mencari data berdasarkan query Anda. Proses akan dimulai setelah Anda mengklik tombol ini.",
       placement: "bottom",
       disableBeacon: true,
       spotlightClicks: false
     },
     {
-      target: '.network-visualization',
-      content: "This visualization shows the neural network in action, demonstrating how information flows through the system.",
+      target: '[data-tour="network-visualization"]',
+      content: "🌐 Network Visualization: Visualisasi ini menunjukkan jaringan neural yang aktif, dengan node yang berkedip saat data mengalir. Anda dapat melihat bagaimana informasi bergerak antar node.",
       placement: "bottom",
       disableBeacon: true,
       spotlightClicks: false
     },
     {
-      target: '.metrics-display',
-      content: "Monitor key performance metrics such as accuracy, processing time, and efficiency in real-time.",
+      target: '[data-tour="metrics-display"]',
+      content: "📊 Metrics Display: Monitor metrik kinerja utama seperti akurasi, waktu pemrosesan, dan efisiensi secara real-time. Data ini diperbarui setiap detik.",
       placement: "left",
       disableBeacon: true,
       spotlightClicks: false
     },
     {
-      target: '.realtime-log',
-      content: "The Real-time Log displays system activity and agent behavior as it happens.",
+      target: '[data-tour="realtime-log"]',
+      content: "📝 Real-time Log: Log ini menampilkan aktivitas sistem dan perilaku agen secara real-time. Anda dapat melihat setiap langkah yang dilakukan oleh sistem.",
       placement: "left",
       disableBeacon: true,
       spotlightClicks: false
     },
     {
       target: '.wallet-balance',
-      content: "Your ICP cryptocurrency balance for data transactions.",
+      content: "💰 Wallet Balance: Saldo ICP cryptocurrency Anda untuk transaksi data. Setiap pencarian dan download data akan menggunakan saldo ini.",
       placement: "bottom",
       disableBeacon: true,
       spotlightClicks: false
     },
     {
       target: '[data-tour="header-tour-button"]',
-      content: "You can restart this tour anytime by clicking this button.",
+      content: "🔄 Tour Button: Anda dapat memulai ulang tur ini kapan saja dengan mengklik tombol ini. Berguna jika Anda ingin melihat penjelasan fitur lagi.",
       placement: "bottom",
       disableBeacon: true,
       spotlightClicks: false
     }
   ];
 
-  const handleModeChange = (newMode) => {
-    setMode(newMode);
-    // Assuming addLog function is passed from a parent or context
-    // This part of the code might need to be adjusted based on the actual implementation
-    // if (addLog && typeof addLog === 'function') {
-    //   addLog('mode', `Mode changed to ${newMode === 'training' ? 'Training' : 'Live'} Mode`, 'info', 'mode-toggle');
-    // }
+  // Filter tour steps to only include steps with existing target elements
+  const getValidTourSteps = () => {
+    return tourSteps.filter(step => {
+      const targetElement = document.querySelector(step.target);
+      return targetElement !== null;
+    });
   };
+
+  // State untuk menyimpan valid tour steps
+  const [validTourSteps, setValidTourSteps] = useState([]);
+
+  // Update valid tour steps when component mounts or when runTour changes
+  useEffect(() => {
+    const validSteps = tourSteps.filter(step => {
+      const targetElement = document.querySelector(step.target);
+      return targetElement !== null;
+    });
+    setValidTourSteps(validSteps);
+    console.log('Valid tour steps:', validSteps);
+  }, [runTour]);
+
+
   
 
   return (
   <div className="min-h-screen bg-yellow-50 text-black relative flex flex-col">
       {/* Guided tour overlay */}
       <Joyride
-  steps={tourSteps}
-  run={runTour}
-  continuous
-  showSkipButton
-  showProgress
-  scrollToFirstStep={true}
-  scrollToStep={true}
-  disableScrolling={false}
-  spotlight={true}
-  hideBackButton={false}
-  hideCloseButton={false}
+        steps={validTourSteps}
+        run={runTour}
+        continuous={true}
+        showSkipButton={true}
+        showProgress={true}
+        scrollToFirstStep={true}
+        scrollToStep={true}
+        disableScrolling={false}
+        spotlight={true}
+        hideBackButton={false}
+        hideCloseButton={false}
+        disableOverlayClose={false}
+        disableOverlay={false}
         styles={{
           options: {
             zIndex: 10000,
-            primaryColor: '#000000',
+            primaryColor: '#FFD600',
             backgroundColor: '#ffffff',
-            arrowColor: '#000000',
+            arrowColor: '#FFD600',
             textColor: '#000000',
-            overlayColor: 'rgba(0, 0, 0, 0.75)',
-            width: 320
+            overlayColor: 'rgba(0, 0, 0, 0.8)',
+            width: 380
           },
           spotlight: {
-            backgroundColor: 'transparent',
-            borderRadius: 0
+            backgroundColor: 'rgba(255, 214, 0, 0.25)',
+            borderRadius: '8px',
+            border: '3px solid #FFD600',
+            boxShadow: '0 0 0 9999px rgba(0, 0, 0, 0.9), 0 0 25px rgba(255, 214, 0, 1), inset 0 0 15px rgba(255, 214, 0, 0.3)'
           },
           tooltipContainer: {
             textAlign: 'left',
-            padding: '12px',
-            borderRadius: '8px',
-            fontWeight: 700,
+            padding: '16px',
+            borderRadius: '12px',
+            fontWeight: 600,
             fontSize: '14px',
-            border: '2px solid #000000',
-            boxShadow: '4px 4px 0px 0px rgba(0,0,0,1)',
-            backgroundColor: '#ffffff'
+            border: '3px solid #000000',
+            boxShadow: '6px 6px 0px 0px rgba(0,0,0,1), 0 0 20px rgba(255, 214, 0, 0.3)',
+            backgroundColor: '#ffffff',
+            maxWidth: '360px',
+            minWidth: '280px',
+            background: 'linear-gradient(135deg, #ffffff 0%, #fefefe 100%)'
           },
           tooltip: {
             fontSize: '14px',
-            padding: '8px 0',
+            padding: '10px 0',
             backgroundColor: '#ffffff',
-            color: '#000000'
+            color: '#000000',
+            lineHeight: '1.5',
+            fontWeight: '500'
           },
           buttonBack: {
-            marginRight: 10,
-            backgroundColor: '#fde047',
+            marginRight: 12,
+            backgroundColor: '#FFD600',
             color: '#000000',
             fontSize: '14px',
             fontWeight: 'bold',
-            padding: '6px 12px',
+            padding: '8px 16px',
             border: '2px solid #000000',
-            boxShadow: '2px 2px 0px 0px rgba(0,0,0,1)'
+            boxShadow: '3px 3px 0px 0px rgba(0,0,0,1)',
+            borderRadius: '6px',
+            transition: 'all 0.2s ease'
           },
           buttonNext: {
-            backgroundColor: '#fde047',
+            backgroundColor: '#FFD600',
             color: '#000000',
             fontSize: '14px',
             fontWeight: 'bold',
-            padding: '6px 12px',
+            padding: '8px 16px',
             border: '2px solid #000000',
-            boxShadow: '2px 2px 0px 0px rgba(0,0,0,1)'
+            boxShadow: '3px 3px 0px 0px rgba(0,0,0,1)',
+            borderRadius: '6px',
+            transition: 'all 0.2s ease'
           },
           buttonSkip: {
-            color: '#000000',
+            color: '#666666',
             fontSize: '14px',
-            fontWeight: 'bold'
+            fontWeight: 'bold',
+            textDecoration: 'underline',
+            transition: 'all 0.2s ease'
           },
           overlay: {
-            backgroundColor: 'rgba(0, 0, 0, 0.5)'
+            backgroundColor: 'rgba(0, 0, 0, 0.8)'
+          },
+          arrow: {
+            color: '#FFD600',
+            length: 12,
+            spread: 20,
+            border: '2px solid #000000'
           }
         }}
         locale={{
@@ -395,16 +430,18 @@ function Dashboard({ onBackToLanding }) {
           skip: 'Skip'
         }}
         floaterProps={{
-          disableAnimation: true,
-          disableOverlayAnimation: true,
+          disableAnimation: false,
+          disableOverlayAnimation: false,
           styles: {
             floater: {
-              filter: 'drop-shadow(0px 0px 5px rgba(0,0,0,0.3))'
+              filter: 'drop-shadow(0px 0px 20px rgba(255, 214, 0, 0.7))'
             },
             arrow: {
-              color: '#000000',
-              length: 6,
-              spread: 10
+              color: '#FFD600',
+              length: 20,
+              spread: 30,
+              border: '4px solid #000000',
+              boxShadow: '0 0 20px rgba(255, 214, 0, 1), 0 0 40px rgba(255, 214, 0, 0.6)'
             }
           }
         }}
@@ -420,22 +457,52 @@ function Dashboard({ onBackToLanding }) {
           skipProps,
           isLastStep,
         }) => (
-          <div className="p-4 bg-white border-2 border-black rounded">
-            <div className="mb-2 font-bold text-black text-base">{step.content}</div>
-            <div className="flex justify-between items-center">
-              <div>
+          <div className="p-5 bg-white border-3 border-black rounded-xl shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] relative overflow-hidden max-w-sm sm:max-w-md">
+            {/* Progress bar */}
+            <div className="absolute top-0 left-0 right-0 h-1 bg-gray-200">
+              <div 
+                className="h-full bg-yellow-400 transition-all duration-300 ease-out"
+                style={{ width: `${((index + 1) / tourSteps.length) * 100}%` }}
+              ></div>
+            </div>
+            
+            {/* Header */}
+            <div className="flex items-center justify-between mb-4 pt-2">
+              <div className="flex items-center space-x-2">
+                <div className="w-6 h-6 bg-yellow-400 border-2 border-black rounded-full flex items-center justify-center shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
+                  <span className="text-black font-black text-xs">{index + 1}</span>
+                </div>
+                <div className="text-xs text-gray-600 font-medium">
+                  Langkah {index + 1} dari {tourSteps.length}
+                </div>
+              </div>
+              <div className="text-xs text-gray-500 font-medium">
+                {Math.round(((index + 1) / tourSteps.length) * 100)}%
+              </div>
+            </div>
+            
+            {/* Content */}
+            <div className="mb-4">
+              <div className="text-black text-sm leading-relaxed font-medium">
+                {step.content}
+              </div>
+            </div>
+            
+            {/* Buttons */}
+            <div className="flex justify-between items-center pt-3 border-t border-gray-200">
+              <div className="flex gap-2">
                 {index > 0 && (
                   <button
                     {...backProps}
-                    className="px-4 py-1 mr-2 bg-yellow-300 border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] text-black font-bold rounded"
+                    className="px-3 py-2 bg-gray-200 border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] text-black font-bold rounded-lg hover:translate-x-1 hover:translate-y-1 hover:shadow-[1px_1px_0px_0px_rgba(0,0,0,1)] transition-all duration-200 text-xs"
                   >
-                    Prev
+                    ← Prev
                   </button>
                 )}
                 {!isLastStep && (
                   <button
                     {...skipProps}
-                    className="px-4 py-1 bg-gray-200 border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] text-black font-bold rounded"
+                    className="px-3 py-2 bg-gray-100 border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] text-gray-700 font-bold rounded-lg hover:translate-x-1 hover:translate-y-1 hover:shadow-[1px_1px_0px_0px_rgba(0,0,0,1)] transition-all duration-200 text-xs"
                   >
                     Skip
                   </button>
@@ -443,18 +510,55 @@ function Dashboard({ onBackToLanding }) {
               </div>
               <button
                 {...(isLastStep ? closeProps : primaryProps)}
-                className="px-4 py-1 bg-yellow-300 border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] text-black font-bold rounded"
+                className="px-4 py-2 bg-yellow-400 border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] text-black font-bold rounded-lg hover:translate-x-1 hover:translate-y-1 hover:shadow-[1px_1px_0px_0px_rgba(0,0,0,1)] transition-all duration-200 text-xs"
               >
-                {isLastStep ? 'Done' : 'Next'}
+                {isLastStep ? 'Done ✓' : 'Next →'}
               </button>
             </div>
           </div>
         )}
         callback={(data) => {
-          const { action, index, status, type } = data;
+          const { action, index, status, type, step } = data;
+          
+          console.log('Tour callback:', { action, index, status, type, step });
           
           if (status === 'finished' || status === 'skipped') {
             setRunTour(false);
+            if (status === 'finished') {
+              console.log('🎉 Tour completed successfully!');
+            }
+          }
+          
+          // Handle step navigation
+          if (type === 'step:after') {
+            console.log(`📍 Tour step ${index + 1} completed`);
+          }
+          
+          if (type === 'step:before') {
+            console.log(`🎯 Tour step ${index + 1} starting`);
+            // Check if target element exists
+            if (step && step.target) {
+              const targetElement = document.querySelector(step.target);
+              console.log(`Target element for step ${index + 1}:`, targetElement);
+              if (!targetElement) {
+                console.warn(`⚠️ Target element not found: ${step.target}`);
+              }
+            }
+          }
+          
+          // Handle tour start
+          if (type === 'tour:start') {
+            console.log('🚀 Tour started');
+            // Check all target elements
+            tourSteps.forEach((step, idx) => {
+              const targetElement = document.querySelector(step.target);
+              console.log(`Step ${idx + 1} target (${step.target}):`, targetElement);
+            });
+          }
+          
+          // Handle errors
+          if (status === 'error') {
+            console.error('Tour error:', data);
           }
         }}
       />
@@ -508,9 +612,7 @@ function Dashboard({ onBackToLanding }) {
               <BarChart3 size={16} />
               <span>Analytics</span>
             </button>
-            <div className="ml-4">
-              <ModeToggle mode={mode} onChange={handleModeChange} />
-            </div>
+            
           </div>
 
           {/* Right: User, Wallet, and Status Controls */}
@@ -521,11 +623,13 @@ function Dashboard({ onBackToLanding }) {
             <button
               onClick={() => setRunTour(true)}
               data-tour="header-tour-button"
-              className="flex items-center space-x-2 px-3 py-2 rounded-lg bg-yellow-300 text-black text-sm font-black border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:translate-x-1 hover:translate-y-1 hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all"
+              className="flex items-center space-x-2 px-4 py-2 rounded-lg bg-yellow-400 text-black text-sm font-black border-3 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:translate-x-1 hover:translate-y-1 hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all relative group"
               aria-label="Start guided tour"
             >
-              <HelpCircle size={16} />
-              <span>Tour</span>
+              <div className="absolute inset-0 bg-yellow-300 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity"></div>
+              <HelpCircle size={18} className="relative z-10" />
+              <span className="relative z-10">Tour Guide</span>
+              <div className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 border-2 border-black rounded-full animate-pulse"></div>
             </button>
             <div className="flex items-center space-x-2">
               <button
@@ -890,7 +994,7 @@ function Dashboard({ onBackToLanding }) {
                     </div>
                   </div>
                   {/* Network Visualization Component */}
-                  <div className="pt-16 h-full network-visualization">
+                  <div className="pt-16 h-full network-visualization" data-tour="network-visualization">
                     <NetworkVisualization
                       agentStatus={agentStatus}
                       networkData={networkData}
@@ -1016,7 +1120,7 @@ function Dashboard({ onBackToLanding }) {
             {activeTab === 'network' && (
               <>
                 {/* Performance Metrics */}
-                <div className="bg-yellow-200 border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] rounded-lg p-3 metrics-display">
+                <div className="bg-yellow-200 border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] rounded-lg p-3 metrics-display" data-tour="metrics-display">
                   <div className="flex items-center justify-between mb-3">
                     <h3 className="text-xs font-black text-black">PERFORMANCE</h3>
                     <span className="text-xs text-black font-bold">Live</span>
@@ -1061,7 +1165,7 @@ function Dashboard({ onBackToLanding }) {
                 {/* Real-time Activity Log */}
                 <div className="space-y-3">
                   <h3 className="text-xs font-black text-black uppercase tracking-wide">Activity Log</h3>
-                  <div className="h-96 realtime-log">
+                  <div className="h-96 realtime-log" data-tour="realtime-log">
                     <RealtimeLog logs={logs} />
                   </div>
                 </div>
