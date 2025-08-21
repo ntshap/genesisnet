@@ -1,27 +1,24 @@
-﻿// ICP Agent Service - Configured for Mock DFX Replica Server
-// Connects to mock server at http://localhost:4943
+﻿// ICP Agent Service - Connects frontend to real backend agents
 
-// Mock server configuration
-const MOCK_SERVER_URL = 'http://localhost:4943';
-
-// Mock canister IDs from mock_dfx_replica.py
+// Real backend server configuration
+const BACKEND_SERVER_URL = 'http://localhost:4943';
 const CANISTER_IDS = {
   data_requester: 'rdmx6-jaaaa-aaaaa-aaadq-cai',
   data_provider: 'rrkah-fqaaa-aaaaa-aaaaq-cai',
   reputation_agent: 'rno2w-sqaaa-aaaaa-aaacq-cai'
 };
 
-// Mock data for development
-const mockAgentLogs = [
-  { timestamp: new Date().toISOString(), level: 'info', message: 'Agent initialized successfully', source: 'data_requester' },
-  { timestamp: new Date().toISOString(), level: 'info', message: 'Searching for data providers...', source: 'data_requester' },
-  { timestamp: new Date().toISOString(), level: 'success', message: 'Found 3 potential providers', source: 'data_requester' },
-  { timestamp: new Date().toISOString(), level: 'info', message: 'Starting negotiation process', source: 'reputation_agent' }
+// Mock data for fallback scenarios
+const mockLogs = [
+  { timestamp: new Date().toISOString(), level: 'INFO', message: 'Data Provider Agent initialized', agent: 'provider' },
+  { timestamp: new Date(Date.now() - 60000).toISOString(), level: 'INFO', message: 'Data Requester Agent started search', agent: 'requester' },
+  { timestamp: new Date(Date.now() - 120000).toISOString(), level: 'SUCCESS', message: 'Transaction completed successfully', agent: 'reputation' },
+  { timestamp: new Date(Date.now() - 180000).toISOString(), level: 'INFO', message: 'New data offer received', agent: 'provider' },
+  { timestamp: new Date(Date.now() - 240000).toISOString(), level: 'WARNING', message: 'High network latency detected', agent: 'network' }
 ];
 
 const mockMetrics = {
-  totalRequests: 156,
-  successfulTransactions: 142,
+  totalTransactions: 142,
   activeProviders: 8,
   averageResponseTime: 1.2,
   networkHealth: 95,
@@ -44,8 +41,8 @@ const mockNetworkData = {
   ]
 };
 
-// Helper function to make API calls to mock server
-async function callMockServer(endpoint, method = 'GET', data = null) {
+// Helper function to make API calls to backend server
+async function callBackendServer(endpoint, method = 'GET', data = null) {
   try {
     const options = {
       method,
@@ -59,175 +56,236 @@ async function callMockServer(endpoint, method = 'GET', data = null) {
       options.body = JSON.stringify(data);
     }
 
-    const response = await fetch(`${MOCK_SERVER_URL}${endpoint}`, options);
+    const response = await fetch(`${BACKEND_SERVER_URL}${endpoint}`, options);
     
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
-
+    
     return await response.json();
   } catch (error) {
-    console.warn(`Mock server call failed for ${endpoint}:`, error);
-    // Return mock data as fallback
-    return { status: 'mock_fallback', data: null };
-  }
-}
-
-// Exported functions for use by React components
-
-/**
- * Get agent logs from the mock server
- */
-export async function getAgentLogs() {
-  try {
-    const response = await callMockServer('/api/v2/status');
-    if (response.status === 'mock_fallback') {
-      return mockAgentLogs;
-    }
-    
-    // Transform server response to expected format
-    return [
-      { 
-        timestamp: new Date().toISOString(), 
-        level: 'info', 
-        message: `Mock server status: ${response.replica_health_status}`, 
-        source: 'mock_server' 
-      },
-      ...mockAgentLogs
-    ];
-  } catch (error) {
-    console.error('Error fetching agent logs:', error);
-    return mockAgentLogs;
+    console.warn('Backend server call failed, using fallback data:', error);
+    return { status: 'fallback', error: error.message };
   }
 }
 
 /**
- * Get agent metrics from the mock server
+ * Get agent logs from Data Requester Agent
  */
-export async function getAgentMetrics() {
+export async function getAgentLogs(startTime, endTime) {
   try {
-    const response = await callMockServer('/api/v2/status');
-    if (response.status === 'mock_fallback') {
-      return mockMetrics;
-    }
-    
-    // Enhance mock metrics with server data
-    return {
-      ...mockMetrics,
-      serverVersion: response.version || 'unknown',
-      serverStatus: response.replica_health_status || 'unknown'
-    };
-  } catch (error) {
-    console.error('Error fetching agent metrics:', error);
-    return mockMetrics;
-  }
-}
-
-/**
- * Get network visualization data
- */
-export async function getNetworkVisualizationData() {
-  try {
-    const response = await callMockServer('/_/dashboard');
-    if (response.status === 'mock_fallback') {
-      return mockNetworkData;
-    }
-    
-    // Enhance network data with server information
-    const enhancedData = { ...mockNetworkData };
-    if (response.canisters) {
-      enhancedData.serverInfo = {
-        canisters: response.canisters,
-        requestsCount: response.requests_count || 0,
-        providersCount: response.providers_count || 0,
-        transactionsCount: response.transactions_count || 0
-      };
-    }
-    
-    return enhancedData;
-  } catch (error) {
-    console.error('Error fetching network data:', error);
-    return mockNetworkData;
-  }
-}
-
-/**
- * Get agent status
- */
-export async function getAgentStatus() {
-  try {
-    const response = await callMockServer('/api/v2/status');
-    if (response.status === 'mock_fallback') {
-      return { status: 'active', health: 'good', lastUpdate: new Date().toISOString() };
-    }
-    
-    return {
-      status: response.replica_health_status === 'healthy' ? 'active' : 'inactive',
-      health: response.replica_health_status || 'unknown',
-      version: response.version || 'unknown',
-      lastUpdate: new Date().toISOString()
-    };
-  } catch (error) {
-    console.error('Error fetching agent status:', error);
-    return { status: 'error', health: 'poor', lastUpdate: new Date().toISOString() };
-  }
-}
-
-/**
- * Get ICP connection status
- */
-export async function getICPConnectionStatus() {
-  try {
-    const response = await callMockServer('/api/v2/status');
-    if (response.status === 'mock_fallback') {
-      return { connected: false, network: 'mock', latency: 0 };
-    }
-    
-    return {
-      connected: response.replica_health_status === 'healthy',
-      network: 'mock_replica',
-      version: response.version || 'unknown',
-      latency: Math.random() * 100 + 50 // Mock latency
-    };
-  } catch (error) {
-    console.error('Error checking ICP connection:', error);
-    return { connected: false, network: 'error', latency: 0 };
-  }
-}
-
-/**
- * Start search agent
- */
-export async function startSearchAgent(searchParams = {}) {
-  try {
-    const response = await callMockServer(
+    const response = await callBackendServer(
       `/api/v2/canister/${CANISTER_IDS.data_requester}/call`,
       'POST',
       {
-        method_name: 'submit_request',
-        arg: JSON.stringify(searchParams)
+        method_name: 'get_logs',
+        arg: JSON.stringify({ startTime, endTime })
       }
     );
-    
-    if (response.status === 'mock_fallback') {
-      return { 
-        success: true, 
-        requestId: 'mock-request-' + Date.now(),
-        message: 'Search agent started (mock mode)' 
+
+    if (response.status === 'fallback') {
+      return {
+        success: true,
+        logs: mockLogs,
+        message: 'Using fallback data (backend unavailable)'
       };
     }
-    
+
     return {
       success: response.status === 'replied',
-      requestId: response.reply?.arg || 'unknown',
+      logs: JSON.parse(response.reply?.arg || '[]'),
+      message: 'Logs retrieved successfully'
+    };
+  } catch (error) {
+    console.error('Error getting agent logs:', error);
+    return {
+      success: false,
+      logs: mockLogs,
+      error: error.message,
+      message: 'Failed to retrieve logs, using fallback data'
+    };
+  }
+}
+
+/**
+ * Get agent metrics from Data Requester Agent
+ */
+export async function getAgentMetrics() {
+  try {
+    const response = await callBackendServer(
+      `/api/v2/canister/${CANISTER_IDS.data_requester}/call`,
+      'POST',
+      {
+        method_name: 'get_metrics',
+        arg: JSON.stringify({})
+      }
+    );
+
+    if (response.status === 'fallback') {
+      return {
+        success: true,
+        metrics: mockMetrics,
+        message: 'Using fallback data (backend unavailable)'
+      };
+    }
+
+    return {
+      success: response.status === 'replied',
+      metrics: JSON.parse(response.reply?.arg || '{}'),
+      message: 'Metrics retrieved successfully'
+    };
+  } catch (error) {
+    console.error('Error getting agent metrics:', error);
+    return {
+      success: false,
+      metrics: mockMetrics,
+      error: error.message,
+      message: 'Failed to retrieve metrics, using fallback data'
+    };
+  }
+}
+
+/**
+ * Get network visualization data from Data Requester Agent
+ */
+export async function getNetworkVisualizationData() {
+  try {
+    const response = await callBackendServer(
+      `/api/v2/canister/${CANISTER_IDS.data_requester}/call`,
+      'POST',
+      {
+        method_name: 'get_network_data',
+        arg: JSON.stringify({})
+      }
+    );
+
+    if (response.status === 'fallback') {
+      return {
+        success: true,
+        data: mockNetworkData,
+        message: 'Using fallback data (backend unavailable)'
+      };
+    }
+
+    return {
+      success: response.status === 'replied',
+      data: JSON.parse(response.reply?.arg || '{}'),
+      message: 'Network data retrieved successfully'
+    };
+  } catch (error) {
+    console.error('Error getting network data:', error);
+    return {
+      success: false,
+      data: mockNetworkData,
+      error: error.message,
+      message: 'Failed to retrieve network data, using fallback data'
+    };
+  }
+}
+
+/**
+ * Get agent status from all agents
+ */
+export async function getAgentStatus() {
+  try {
+    const [requesterStatus, providerStatus, reputationStatus] = await Promise.allSettled([
+      callBackendServer(`/api/v2/canister/${CANISTER_IDS.data_requester}/call`, 'POST', {
+        method_name: 'get_status',
+        arg: JSON.stringify({})
+      }),
+      callBackendServer(`/api/v2/canister/${CANISTER_IDS.data_provider}/call`, 'POST', {
+        method_name: 'get_status',
+        arg: JSON.stringify({})
+      }),
+      callBackendServer(`/api/v2/canister/${CANISTER_IDS.reputation_agent}/call`, 'POST', {
+        method_name: 'get_status',
+        arg: JSON.stringify({})
+      })
+    ]);
+
+    return {
+      success: true,
+      agents: {
+        data_requester: requesterStatus.status === 'fulfilled' ? requesterStatus.value : { status: 'offline' },
+        data_provider: providerStatus.status === 'fulfilled' ? providerStatus.value : { status: 'offline' },
+        reputation_agent: reputationStatus.status === 'fulfilled' ? reputationStatus.value : { status: 'offline' }
+      },
+      message: 'Agent status retrieved successfully'
+    };
+  } catch (error) {
+    console.error('Error getting agent status:', error);
+    return {
+      success: false,
+      agents: {
+        data_requester: { status: 'unknown' },
+        data_provider: { status: 'unknown' },
+        reputation_agent: { status: 'unknown' }
+      },
+      error: error.message,
+      message: 'Failed to retrieve agent status'
+    };
+  }
+}
+
+/**
+ * Check ICP connection status
+ */
+export async function getICPConnectionStatus() {
+  try {
+    const response = await callBackendServer('/api/v2/status');
+    
+    return {
+      success: true,
+      connected: response.replica_health_status === 'healthy',
+      status: response.replica_health_status || 'unknown',
+      message: 'ICP connection status retrieved successfully'
+    };
+  } catch (error) {
+    console.error('Error checking ICP connection:', error);
+    return {
+      success: false,
+      connected: false,
+      status: 'disconnected',
+      error: error.message,
+      message: 'Failed to check ICP connection status'
+    };
+  }
+}
+
+/**
+ * Start search agent with query parameters
+ */
+export async function startSearchAgent(queryParams = {}) {
+  try {
+    const response = await callBackendServer(
+      `/api/v2/canister/${CANISTER_IDS.data_requester}/call`,
+      'POST',
+      {
+        method_name: 'start_data_search',
+        arg: JSON.stringify({
+          query_id: queryParams.queryId || 'search-' + Date.now(),
+          requester_id: queryParams.requesterId || 'frontend-user',
+          data_type: queryParams.dataType || 'sensor',
+          location: queryParams.location || 'unknown',
+          timestamp: Date.now(),
+          max_price: queryParams.maxPrice || 100,
+          quality_requirements: queryParams.qualityRequirements || 'standard'
+        })
+      }
+    );
+
+    return {
+      success: response.status === 'replied',
+      searchId: queryParams.queryId || 'search-' + Date.now(),
+      location: queryParams.location || 'unknown',
       message: 'Search agent started successfully'
     };
   } catch (error) {
     console.error('Error starting search agent:', error);
-    return { 
-      success: false, 
+    return {
+      success: false,
       error: error.message,
-      message: 'Failed to start search agent' 
+      message: 'Failed to start search agent'
     };
   }
 }
@@ -237,7 +295,7 @@ export async function startSearchAgent(searchParams = {}) {
  */
 export async function negotiateWithProvider(providerId, terms = {}) {
   try {
-    const response = await callMockServer(
+    const response = await callBackendServer(
       `/api/v2/canister/${CANISTER_IDS.reputation_agent}/call`,
       'POST',
       {
@@ -245,16 +303,16 @@ export async function negotiateWithProvider(providerId, terms = {}) {
         arg: JSON.stringify({ providerId, terms })
       }
     );
-    
-    if (response.status === 'mock_fallback') {
+
+    if (response.status === 'fallback') {
       return {
         success: true,
-        negotiationId: 'mock-negotiation-' + Date.now(),
+        negotiationId: 'fallback-negotiation-' + Date.now(),
         finalPrice: Math.floor(Math.random() * 50) + 80,
-        message: 'Negotiation completed (mock mode)'
+        message: 'Negotiation completed (fallback mode)'
       };
     }
-    
+
     return {
       success: response.status === 'replied',
       negotiationId: 'negotiation-' + Date.now(),
@@ -273,11 +331,11 @@ export async function negotiateWithProvider(providerId, terms = {}) {
 
 // Export configuration for debugging
 export const config = {
-  MOCK_SERVER_URL,
+  BACKEND_SERVER_URL,
   CANISTER_IDS,
   isConnected: async () => {
     try {
-      const response = await callMockServer('/api/v2/status');
+      const response = await callBackendServer('/api/v2/status');
       return response.replica_health_status === 'healthy';
     } catch {
       return false;
