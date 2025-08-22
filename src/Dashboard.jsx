@@ -169,8 +169,7 @@ function Dashboard({ onBackToLanding }) {
         
         setTimeout(() => {
           const detectedNodes = Math.floor(Math.random() * 5) + 18;
-          addLog(`scan`, `Network scan complete - ${detectedNodes} nodes detected`, `success`, `network-scanner`);
-
+            addLog(`scan`, `Network scan complete - ${detectedNodes} nodes detected`, `success`, `network-scanner`);
           // Trigger a refresh after scan
           if (refresh && typeof refresh === `function`) {
             refresh();
