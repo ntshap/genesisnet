@@ -69,8 +69,13 @@ function Dashboard({ onBackToLanding }) {
   const [autoStarted, setAutoStarted] = useState(false);
   const [activeTab, setActiveTab] = useState('network');
   const [showWalletHistory, setShowWalletHistory] = useState(false);
-  const [showSettingsPanel, setShowSettingsPanel] = useState(false);
+  const [showSettingsPanel, setShowSettingsPanel] = useState(false);`n  const [isNetworkNodesDropdownOpen, setIsNetworkNodesDropdownOpen] = useState(false);
   const [userSettings, setUserSettings] = useState({ theme: 'light', accentColor: '#FFD600', language: 'id', notifications: true, avatar: '' });
+  // Toggle function for Network Nodes dropdown
+  const toggleNetworkNodesDropdown = () => {
+    setIsNetworkNodesDropdownOpen(!isNetworkNodesDropdownOpen);
+  };
+
 
   // Use the enhanced interactive demo hook
   const {
@@ -907,34 +912,46 @@ function Dashboard({ onBackToLanding }) {
                 Refresh Data
               </button>
             </div>
-            {/* Network Nodes List */}
+            {/* Network Nodes Dropdown */}
             <div className="space-y-3">
-              <h3 className="text-xs font-black text-black uppercase tracking-wide">Network Nodes</h3>
-              <div className="space-y-2">
-                {[
-                  { id: "CORE-01", status: "online", load: "67%" },
-                  { id: "CORE-02", status: "online", load: "45%" },
-                  { id: "EDGE-A1", status: "online", load: "89%" },
-                  { id: "EDGE-B2", status: "maintenance", load: "0%" },
-                  { id: "RELAY-X1", status: "online", load: "23%" },
-                  { id: "CORE-03", status: "online", load: "78%" },
-                  { id: "EDGE-C3", status: "online", load: "56%" },
-                  { id: "RELAY-Y2", status: "online", load: "34%" },
-                  { id: "EDGE-D4", status: "offline", load: "0%" },
-                  { id: "CORE-04", status: "online", load: "91%" }
-                ].map((node, idx) => (
-                  <div key={node.id} className="flex items-center justify-between p-2 bg-orange-200 border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] rounded">
-                    <div className="flex items-center space-x-2">
-                      <div className={`w-2 h-2 rounded-full border border-black ${
-                        node.status === 'online' ? 'bg-green-500' :
-                        node.status === 'maintenance' ? 'bg-yellow-500' : 'bg-red-500'
-                      }`}></div>
-                      <span className="text-xs text-black font-black">{node.id}</span>
-                    </div>
-                    <span className="text-xs text-black font-black">{node.load}</span>
-                  </div>
-                ))}
+              <div 
+                className="flex items-center justify-between p-2 bg-blue-200 border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] rounded cursor-pointer hover:bg-blue-300 transition-colors"
+                onClick={toggleNetworkNodesDropdown}
+              >
+                <h3 className="text-xs font-black text-black uppercase tracking-wide">Network Nodes</h3>
+                <div className={`transform transition-transform duration-200 ${isNetworkNodesDropdownOpen ? "rotate-180" : ""}`}>
+                  <svg className="w-4 h-4 text-black" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </div>
               </div>
+              {isNetworkNodesDropdownOpen && (
+                <div className="space-y-2 max-h-60 overflow-y-auto">
+                  {[
+                    { id: "CORE-01", status: "online", load: "67%" },
+                    { id: "CORE-02", status: "online", load: "45%" },
+                    { id: "EDGE-A1", status: "online", load: "89%" },
+                    { id: "EDGE-B2", status: "maintenance", load: "0%" },
+                    { id: "RELAY-X1", status: "online", load: "23%" },
+                    { id: "CORE-03", status: "online", load: "78%" },
+                    { id: "EDGE-C3", status: "online", load: "56%" },
+                    { id: "RELAY-Y2", status: "online", load: "34%" },
+                    { id: "EDGE-D4", status: "offline", load: "0%" },
+                    { id: "CORE-04", status: "online", load: "91%" }
+                  ].map((node, idx) => (
+                    <div key={node.id} className="flex items-center justify-between p-2 bg-orange-200 border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] rounded">
+                      <div className="flex items-center space-x-2">
+                        <div className={`w-2 h-2 rounded-full border border-black ${
+                          node.status === "online" ? "bg-green-500" :
+                          node.status === "maintenance" ? "bg-yellow-500" : "bg-red-500"
+                        }`}></div>
+                        <span className="text-xs text-black font-black">{node.id}</span>
+                      </div>
+                      <span className="text-xs text-black font-black">{node.load}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
             {/* Additional Configuration Panel */}
             <div className="space-y-3">
@@ -1439,3 +1456,4 @@ function Dashboard({ onBackToLanding }) {
 }
 
 export default Dashboard;
+
