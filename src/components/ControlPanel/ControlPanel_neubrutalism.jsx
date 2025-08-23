@@ -14,6 +14,7 @@ import {
   AlertCircle,
   CheckCircle
 } from 'lucide-react';
+import DateRangePicker from '../shared/DateRangePicker';
 
 const ControlPanel = ({ 
   searchCriteria, 
@@ -217,21 +218,12 @@ const ControlPanel = ({
         </div>
 
         {/* Time Range */}
-        <div className="space-y-2">
-          <label className="flex items-center space-x-2 text-sm font-black text-black">
-            <Calendar size={16} className="text-purple-600" />
-            <span>Time Range</span>
-          </label>
-          <input
-            type="text"
-            name="timeRange"
-            value={searchCriteria.timeRange}
-            onChange={onInputChange}
-            disabled={isDisabled}
-            placeholder="e.g., 2024-01-01 to 2024-12-31"
-            className="w-full px-4 py-3 bg-white border-2 border-black rounded-lg shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] text-black font-bold placeholder-gray-500 focus:outline-none focus:translate-x-1 focus:translate-y-1 focus:shadow-[1px_1px_0px_0px_rgba(0,0,0,1)] transition-all disabled:opacity-50"
-          />
-        </div>
+        <DateRangePicker
+          label="Time Range"
+          value={searchCriteria.timeRange}
+          onChange={onInputChange}
+          disabled={isDisabled}
+        />
 
         {/* Max Price */}
         <div className="space-y-2">

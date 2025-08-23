@@ -1,0 +1,213 @@
+/**
+ * Get network metrics
+ */
+export async function getNetworkMetrics() {
+  try {
+    // Try to get metrics from backend
+    const response = await callBackendAPI('/network/metrics', 'GET');
+    
+    return {
+      success: true,
+      metrics: response.metrics,
+      message: 'Metrics retrieved successfully'
+    };
+  } catch (error) {
+    console.error('Error getting network metrics:', error);
+    
+    // Fallback to mock data
+    const mockMetrics = {
+      totalTransactions: 142,
+      activeProviders: 8,
+      averageResponseTime: 1.2,
+      networkHealth: 95,
+      reputationScore: 8.7
+    };
+    
+    return {
+      success: true,
+      metrics: mockMetrics,
+      message: 'Using fallback data (backend unavailable)'
+    };
+  }
+}
+
+/**
+ * Get network visualization data
+ */
+export async function getNetworkVisualization() {
+  try {
+    // Try to get visualization from backend
+    const response = await callBackendAPI('/network/visualization', 'GET');
+    
+    return {
+      success: true,
+      nodes: response.nodes,
+      links: response.links,
+      message: 'Network visualization data retrieved successfully'
+    };
+  } catch (error) {
+    console.error('Error getting network visualization:', error);
+    
+    // Fallback to mock data
+    const mockNetworkData = {
+      nodes: [
+        { id: 'requester', name: 'Data Requester Agent', type: 'requester', status: 'active', fx: 400, fy: 300 },
+        { id: 'provider1', name: 'FinanceData Corp', type: 'provider', reputation: 9.2, price: '100 ICP', status: 'active', location: 'US-East' },
+        { id: 'provider2', name: 'SocialInsights Ltd', type: 'provider', reputation: 7.8, price: '120 ICP', status: 'active', location: 'EU-West' },
+        { id: 'provider3', name: 'ResearchData Hub', type: 'provider', reputation: 8.5, price: '95 ICP', status: 'negotiating', location: 'Asia-Pacific' },
+        { id: 'provider4', name: 'MediaStream AI', type: 'provider', reputation: 6.9, price: '85 ICP', status: 'active', location: 'US-West' }
+      ],
+      links: [
+        { source: 'requester', target: 'provider1', strength: 0.8, status: 'active' },
+        { source: 'requester', target: 'provider2', strength: 0.6, status: 'idle' },
+        { source: 'requester', target: 'provider3', strength: 0.7, status: 'negotiating' },
+        { source: 'requester', target: 'provider4', strength: 0.5, status: 'active' }
+      ]
+    };
+    
+    return {
+      success: true,
+      nodes: mockNetworkData.nodes,
+      links: mockNetworkData.links,
+      message: 'Using fallback data (backend unavailable)'
+    };
+  }
+}
+
+/**
+ * Search for data providers
+ */
+export async function searchDataProviders(criteria) {
+  try {
+    // Try to search from backend
+    const response = await callBackendAPI('/network/search', 'POST', criteria);
+    
+    return {
+      success: true,
+      providers: response.results,
+      message: 'Search completed successfully'
+    };
+  } catch (error) {
+    console.error('Error searching data providers:', error);
+    
+    // Fallback to mock data
+    const mockProviders = [
+      { id: 1, name: 'FinanceData Corp', reputation: 9.2, price: 100, location: 'US-East', dataTypes: ['financial', 'market'] },
+      { id: 2, name: 'SocialInsights Ltd', reputation: 7.8, price: 120, location: 'EU-West', dataTypes: ['social', 'sentiment'] },
+      { id: 3, name: 'ResearchData Hub', reputation: 8.5, price: 95, location: 'Asia-Pacific', dataTypes: ['research', 'academic'] }
+    ];
+    
+    return {
+      success: true,
+      providers: mockProviders,
+      message: 'Using fallback data (backend unavailable)'
+    };
+  }
+}
+
+/**
+ * Negotiate with a provider
+ */
+export async function negotiateWithProvider(providerId, proposedPrice, dataRequest) {
+  try {
+    // Try to negotiate through backend
+    const response = await callBackendAPI('/network/negotiate', 'POST', {
+      provider_id: providerId,
+      proposed_price: proposedPrice,
+      data_request: dataRequest
+    });
+    
+    return {
+      success: true,
+      negotiation: response,
+      message: 'Negotiation completed'
+    };
+  } catch (error) {
+    console.error('Error negotiating with provider:', error);
+    
+    // Fallback to mock negotiation
+    const mockOutcomes = ['accepted', 'counter_offer', 'rejected'];
+    const outcome = mockOutcomes[Math.floor(Math.random() * mockOutcomes.length)];
+    
+    let mockResponse = {
+      status: outcome,
+      message: `Provider ${outcome} your offer`
+    };
+    
+    if (outcome === 'counter_offer') {
+      mockResponse.counter_price = proposedPrice * 1.2;
+    } else if (outcome === 'accepted') {
+      mockResponse.final_price = proposedPrice;
+    }
+    
+    return {
+      success: true,
+      negotiation: mockResponse,
+      message: 'Using fallback data (backend unavailable)'
+    };
+  }
+}
+
+/**
+ * Process a transaction
+ */
+export async function processTransaction(transaction) {
+  try {
+    // Try to process through backend
+    const response = await callBackendAPI('/transactions', 'POST', transaction);
+    
+    return {
+      success: true,
+      transaction: response,
+      message: 'Transaction created successfully'
+    };
+  } catch (error) {
+    console.error('Error processing transaction:', error);
+    
+    // Fallback to mock transaction
+    const mockTransaction = {
+      id: Math.floor(Math.random() * 1000),
+      status: 'pending',
+      amount: transaction.amount || 100,
+      created_at: new Date().toISOString()
+    };
+    
+    return {
+      success: true,
+      transaction: mockTransaction,
+      message: 'Using fallback data (backend unavailable)'
+    };
+  }
+}
+
+/**
+ * Get transactions history
+ */
+export async function getTransactions(skip = 0, limit = 20) {
+  try {
+    // Try to get from backend
+    const response = await callBackendAPI(`/transactions?skip=${skip}&limit=${limit}`, 'GET');
+    
+    return {
+      success: true,
+      transactions: response,
+      message: 'Transactions retrieved successfully'
+    };
+  } catch (error) {
+    console.error('Error getting transactions:', error);
+    
+    // Fallback to mock transactions
+    const mockTransactions = Array(5).fill(0).map((_, i) => ({
+      id: i + 1,
+      amount: Math.floor(Math.random() * 200) + 50,
+      status: ['completed', 'pending', 'completed', 'failed', 'completed'][i],
+      created_at: new Date(Date.now() - i * 86400000).toISOString()
+    }));
+    
+    return {
+      success: true,
+      transactions: mockTransactions,
+      message: 'Using fallback data (backend unavailable)'
+    };
+  }
+}

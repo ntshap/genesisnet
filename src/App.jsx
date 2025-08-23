@@ -4,6 +4,7 @@ import LoginPage from './components/LoginPage';
 import Dashboard from './Dashboard';
 import { AuthProvider, useAuth } from './context/AuthContext.jsx';
 import { NotificationProvider } from './context/NotificationContext.jsx';
+import { WalletProvider } from './context/WalletContext.jsx';
 
 function AppContent() {
   // Get auth state from context
@@ -70,13 +71,14 @@ function AppContent() {
   );
 }
 
-// Wrap the app with the authentication provider
-// Wrap the app with the authentication and notification providers
+// Wrap the app with the authentication, notification, and wallet providers
 function App() {
   return (
     <NotificationProvider>
       <AuthProvider>
-        <AppContent />
+        <WalletProvider>
+          <AppContent />
+        </WalletProvider>
       </AuthProvider>
     </NotificationProvider>
   );

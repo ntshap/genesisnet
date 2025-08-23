@@ -22,6 +22,15 @@ const NotificationCenter = () => {
   
   const [isOpen, setIsOpen] = useState(false);
   const unreadCount = getUnreadCount();
+  
+  // Debug logging for notifications
+  useEffect(() => {
+    console.log('NotificationCenter: Notifications updated', { 
+      count: notifications.length,
+      unreadCount,
+      notifications 
+    });
+  }, [notifications, unreadCount]);
 
   // Close notification center when clicking outside
   useEffect(() => {

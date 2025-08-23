@@ -1,0 +1,16 @@
+// NetworkVisualization_neubrutalism.jsx fixes
+
+/* Fix 1: Line 322 - Remove duplicate/redundant attributes */
+// Original:
+//   .attr('stroke-dasharray', conn.label === 'Auth' || conn.label === 'Validate' ? '5,3' : 'none'); // Add dashed style for certain connections to differentiate them
+// Fix: Already applied
+
+/* Fix 2: Line 439 - Check for misplaced semicolons */
+// This appears to be related to the parent function/block structure
+// Look for any blocks that aren't properly closed with matching braces
+
+/* Fix 3: Line 793 - Function structure */
+// Check for proper function closing in handleNegotiate function
+
+/* Fix 4: Line 1109 - Component export structure */
+// Make sure component is properly closed before export

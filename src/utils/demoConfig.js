@@ -3,7 +3,7 @@ export const DEMO_CONFIG = {
   // Demo mode settings
   DEMO_MODE: false, // Set to false when backend is ready
   AUTO_START: false, // Auto-start simulation
-  FORCE_MOCK_MODE: true, // Force mock data (bypass ICP completely)
+  FORCE_MOCK_MODE: false, // Force mock data (bypass ICP completely)
   
   // Animation settings
   ANIMATION_SPEED: 1.0, // 1.0 = normal speed, 0.5 = half speed, 2.0 = double speed

@@ -42,6 +42,131 @@ let mockMetricsState = {
   successfulNegotiations: 38
 };
 
+// Mock wallet data for ICP ledger
+let mockWalletState = {
+  balance: 1250.75, // ICP balance
+  transactions: [],
+  lastUpdated: Date.now()
+};
+
+// Mock agent for interacting with the ICP ledger
+export const mockAgent = {
+  // Create a mock ledger actor for testing
+  createLedgerActor: () => {
+    return {
+      account_balance: async (args) => {
+        // Simulate network delay
+        await new Promise(resolve => setTimeout(resolve, 500));
+        return { e8s: BigInt(Math.floor(mockWalletState.balance * 100000000)) };
+      },
+      transfer: async (args) => {
+        // Simulate network delay
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        
+        // Extract transfer details
+        const amount = Number(args.amount.e8s) / 100000000;
+        const fee = Number(args.fee.e8s) / 100000000;
+        const to = args.to.toString();
+        const memo = args.memo.toString();
+        
+        // 5% chance of random failure for realism
+        if (Math.random() < 0.05) {
+          return { 
+            Err: { 
+              InsufficientFunds: { 
+                balance: { e8s: BigInt(Math.floor(mockWalletState.balance * 100000000)) } 
+              } 
+            } 
+          };
+        }
+        
+        // Record the transaction
+        const txId = Date.now().toString();
+        mockWalletState.transactions.unshift({
+          id: txId,
+          blockHeight: Math.floor(Math.random() * 1000000).toString(),
+          type: 'send',
+          amount: amount.toFixed(8),
+          fee: fee.toFixed(8),
+          from: 'current-user-principal',
+          to,
+          timestamp: Date.now(),
+          status: 'completed',
+          memo
+        });
+        
+        // Update balance
+        mockWalletState.balance -= (amount + fee);
+        mockWalletState.lastUpdated = Date.now();
+        
+        // Add corresponding incoming transaction for the receiver
+        // This would be a separate account in a real system
+        mockWalletState.transactions.unshift({
+          id: `${txId}-recv`,
+          blockHeight: Math.floor(Math.random() * 1000000).toString(),
+          type: 'receive',
+          amount: amount.toFixed(8),
+          fee: '0.00000000',
+          from: 'current-user-principal',
+          to,
+          timestamp: Date.now() + 1000, // Slightly later
+          status: 'completed',
+          memo
+        });
+        
+        // Log the transfer
+        mockLogs.push(`[${new Date().toLocaleTimeString()}] [INFO] Transferred ${amount} ICP to ${to}`);
+        
+        return { Ok: BigInt(txId) };
+      }
+    };
+  },
+  
+  // Add funds to mock wallet (for testing)
+  addFunds: (amount) => {
+    mockWalletState.balance += Number(amount);
+    
+    // Record the transaction
+    mockWalletState.transactions.unshift({
+      id: `deposit-${Date.now()}`,
+      blockHeight: Math.floor(Math.random() * 1000000).toString(),
+      type: 'receive',
+      amount: amount.toFixed(8),
+      fee: '0.00000000',
+      from: 'faucet',
+      to: 'current-user-principal',
+      timestamp: Date.now(),
+      status: 'completed',
+      memo: 'Faucet deposit'
+    });
+    
+    mockWalletState.lastUpdated = Date.now();
+    mockLogs.push(`[${new Date().toLocaleTimeString()}] [INFO] Received ${amount} ICP from faucet`);
+    
+    return {
+      success: true,
+      transaction: mockWalletState.transactions[0]
+    };
+  },
+  
+  // Get wallet balance
+  getBalance: () => {
+    return {
+      success: true,
+      balance: mockWalletState.balance,
+      lastUpdated: mockWalletState.lastUpdated
+    };
+  },
+  
+  // Get transaction history
+  getTransactions: (limit = 10) => {
+    return {
+      success: true,
+      transactions: mockWalletState.transactions.slice(0, limit)
+    };
+  }
+};
+
 let mockNetworkState = {
   nodes: [
     { 

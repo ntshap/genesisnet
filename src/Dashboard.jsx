@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import Joyride from 'react-joyride';
 import { useAuth } from './context/AuthContext.jsx';
+import { useNotifications } from './context/NotificationContext.jsx';
+import { useWallet } from './context/WalletContext.jsx';
 import {
   Globe,
   Users,
@@ -32,7 +34,8 @@ import {
   Download,
   Package,
   FileCheck,
-  HelpCircle
+  HelpCircle,
+  Bell
 } from 'lucide-react';
 import ControlPanel from './components/ControlPanel/ControlPanel_neubrutalism';
 
@@ -46,12 +49,19 @@ import { DEMO_CONFIG } from './utils/demoConfig';
 import AccountSettingsPanel from './components/AccountSettingsPanel.jsx';
 import SettingsIcon from './components/shared/SettingsIcon.jsx';
 import NotificationCenter from './components/NotificationCenter/NotificationCenter.jsx';
+import WalletInfoPanel from './components/WalletInfoPanel.jsx';
 
 function Dashboard({ onBackToLanding }) {
   console.log('Dashboard: Component mounting/rendering');
 
   // Get authentication info and logout function
   const { user, logout } = useAuth();
+  
+  // Get notification functions
+  const { addNotification } = useNotifications();
+  
+  // Access wallet context
+  const { balance, address, isInitialized: walletInitialized } = useWallet();
   
   const [searchCriteria, setSearchCriteria] = useState({
     dataType: 'weather',
@@ -62,18 +72,73 @@ function Dashboard({ onBackToLanding }) {
   });
   
   const [showDemoControls, setShowDemoControls] = useState(DEMO_CONFIG.DEMO_MODE);
-
   const [isScanning, setIsScanning] = useState(false); // Added missing state
   const [runTour, setRunTour] = useState(false);
   const [currentScenario, setCurrentScenario] = useState(null);
+  
+  // Generate welcome notification on mount
+  useEffect(() => {
+    // Welcome notification
+    addNotification({
+      title: 'Welcome to GenesisNet',
+      message: `Hello ${user?.name || 'User'}! Your decentralized data marketplace is ready.`,
+      severity: 'info',
+      category: 'system',
+      type: 'persistent',
+      action: {
+        label: 'Start Tour',
+        onClick: () => setRunTour(true)
+      }
+    });
+    
+    // System status notification
+    addNotification({
+      title: 'System Status',
+      message: 'All systems operational. Network connectivity: 100%',
+      severity: 'success',
+      category: 'system',
+      type: 'persistent'
+    });
+    
+    // Sample transaction notification
+    const timer = setTimeout(() => {
+      addNotification({
+        title: 'New Transaction',
+        message: 'Transaction #TX78902 completed successfully',
+        severity: 'success',
+        category: 'transaction',
+        type: 'toast',
+        duration: 5000,
+        action: {
+          label: 'View Details',
+          onClick: () => console.log('View transaction details')
+        }
+      });
+    }, 3000);
+    
+    // Cleanup timer to prevent memory leaks
+    return () => clearTimeout(timer);
+  }, [addNotification, user, setRunTour]);
   const [autoStarted, setAutoStarted] = useState(false);
   const [activeTab, setActiveTab] = useState('network');
   const [showWalletHistory, setShowWalletHistory] = useState(false);
-  const [showSettingsPanel, setShowSettingsPanel] = useState(false);`n  const [isNetworkNodesDropdownOpen, setIsNetworkNodesDropdownOpen] = useState(false);
+  const [showSettingsPanel, setShowSettingsPanel] = useState(false);
+  const [isNetworkNodesDropdownOpen, setIsNetworkNodesDropdownOpen] = useState(false);
+  const [isActiveConnectionsDropdownOpen, setIsActiveConnectionsDropdownOpen] = useState(true);
+  const [isTransactionPoolDropdownOpen, setIsTransactionPoolDropdownOpen] = useState(true);
   const [userSettings, setUserSettings] = useState({ theme: 'light', accentColor: '#FFD600', language: 'id', notifications: true, avatar: '' });
-  // Toggle function for Network Nodes dropdown
+  
+  // Toggle functions for dropdowns
   const toggleNetworkNodesDropdown = () => {
     setIsNetworkNodesDropdownOpen(!isNetworkNodesDropdownOpen);
+  };
+  
+  const toggleActiveConnectionsDropdown = () => {
+    setIsActiveConnectionsDropdownOpen(!isActiveConnectionsDropdownOpen);
+  };
+  
+  const toggleTransactionPoolDropdown = () => {
+    setIsTransactionPoolDropdownOpen(!isTransactionPoolDropdownOpen);
   };
 
 
@@ -104,6 +169,11 @@ function Dashboard({ onBackToLanding }) {
     refresh,
     addLog,
     clearLogs,
+    addFunds,
+    transferFunds,
+    getWalletInfo,
+    icpWalletAddress,
+    transactionHistory,
     isConnectedToICP = false,
     isMockMode = true,
     connectionStatus = 'connecting',
@@ -123,27 +193,88 @@ function Dashboard({ onBackToLanding }) {
   const handleStartAgent = useCallback(async () => {
     try {
       if (startSearch && typeof startSearch === 'function') {
+        // Add notification for agent starting
+        addNotification({
+          title: 'Agent Activated',
+          message: `Searching for ${searchCriteria.dataType} data in ${searchCriteria.location}`,
+          severity: 'info',
+          category: 'agent',
+          type: 'persistent'
+        });
+        
         await startSearch(searchCriteria);
+        
+        // Add notification for agent success
+        addNotification({
+          title: 'Search Complete',
+          message: 'Data search completed successfully',
+          severity: 'success',
+          category: 'agent',
+          type: 'toast',
+          duration: 5000
+        });
       }
     } catch (error) {
       console.error('Failed to start agent:', error);
+      
+      // Add notification for agent error
+      addNotification({
+        title: 'Agent Error',
+        message: 'Failed to initialize data search. Please try again.',
+        severity: 'error',
+        category: 'agent',
+        type: 'persistent'
+      });
     }
-  }, [startSearch, searchCriteria]);
+  }, [startSearch, searchCriteria, addNotification]);
 
   const handleNegotiate = useCallback(async (provider) => {
     try {
-      if (negotiate && typeof negotiate === 'function') {
-        if (provider) {
-          await negotiate(provider);
-        } else if (searchResults && searchResults.length > 0) {
-          // Use first available provider if no specific provider selected
-          await negotiate(searchResults[0]);
-        }
+      let selectedProvider = provider;
+      
+      if (!selectedProvider && searchResults && searchResults.length > 0) {
+        // Use first available provider if no specific provider selected
+        selectedProvider = searchResults[0];
+      }
+      
+      if (negotiate && typeof negotiate === 'function' && selectedProvider) {
+        // Add notification for negotiation started
+        addNotification({
+          title: 'Negotiation Started',
+          message: `Negotiating with provider: ${selectedProvider.name || 'Provider'}`,
+          severity: 'info',
+          category: 'transaction',
+          type: 'persistent'
+        });
+        
+        await negotiate(selectedProvider);
+        
+        // Add notification for successful negotiation
+        addNotification({
+          title: 'Negotiation Complete',
+          message: `Successfully negotiated with ${selectedProvider.name || 'Provider'} for data access`,
+          severity: 'success',
+          category: 'transaction',
+          type: 'persistent',
+          action: {
+            label: 'View Contract',
+            onClick: () => console.log('View contract details')
+          }
+        });
       }
     } catch (error) {
       console.error('Failed to negotiate:', error);
+      
+      // Add notification for negotiation error
+      addNotification({
+        title: 'Negotiation Failed',
+        message: 'Unable to complete negotiation with provider. Please try again.',
+        severity: 'error',
+        category: 'transaction',
+        type: 'persistent'
+      });
     }
-  }, [negotiate, searchResults]);
+  }, [negotiate, searchResults, addNotification]);
 
   const handleRefresh = useCallback(() => {
     try {
@@ -163,15 +294,38 @@ function Dashboard({ onBackToLanding }) {
       // Trigger network scan animation and data refresh
       addLog('scan', 'Initiating network topology scan...', 'info', 'network-scanner');
       
+      // Add notification for scan started
+      addNotification({
+        title: 'Network Scan Started',
+        message: 'Scanning network for new nodes and connections...',
+        severity: 'info',
+        category: 'network',
+        type: 'persistent'
+      });
+      
       // Simulate scanning process with realistic delay
       setTimeout(() => {
         addLog('scan', 'Discovering new nodes and connections...', 'info', 'network-scanner');
         
         setTimeout(() => {
           const detectedNodes = Math.floor(Math.random() * 5) + 18;
-            addLog(`scan`, `Network scan complete - ${detectedNodes} nodes detected`, `success`, `network-scanner`);
+          addLog('scan', 'Network scan complete - ' + detectedNodes + ' nodes detected', 'success', 'network-scanner');
+          
+          // Add notification for scan completed
+          addNotification({
+            title: 'Network Scan Complete',
+            message: `${detectedNodes} nodes detected in the network`,
+            severity: 'success',
+            category: 'network',
+            type: 'persistent',
+            action: {
+              label: 'View Network',
+              onClick: () => console.log('View network action clicked')
+            }
+          });
+          
           // Trigger a refresh after scan
-          if (refresh && typeof refresh === `function`) {
+          if (refresh && typeof refresh === 'function') {
             refresh();
           }
           setIsScanning(false);
@@ -181,9 +335,19 @@ function Dashboard({ onBackToLanding }) {
     } catch (error) {
       console.error('Failed to scan network:', error);
       addLog('scan', 'Network scan failed - retrying...', 'error', 'network-scanner');
+      
+      // Add notification for scan error
+      addNotification({
+        title: 'Network Scan Failed',
+        message: 'Error scanning the network. Please try again.',
+        severity: 'error',
+        category: 'network',
+        type: 'persistent'
+      });
+      
       setIsScanning(false);
     }
-  }, [refresh, addLog, isScanning]);
+  }, [refresh, addLog, isScanning, addNotification]);
 
   // Demo scenario handling
   const handleScenarioStart = useCallback((scenario) => {
@@ -449,8 +613,6 @@ function Dashboard({ onBackToLanding }) {
             }
           }
         }}
-        disableOverlay={false}
-        disableOverlayClose={false}
         tooltipComponent={({
           continuous,
           index,
@@ -466,7 +628,7 @@ function Dashboard({ onBackToLanding }) {
             <div className="absolute top-0 left-0 right-0 h-1 bg-gray-200">
               <div 
                 className="h-full bg-yellow-400 transition-all duration-300 ease-out"
-                style={{ width: `${((index + 1) / tourSteps.length) * 100}%` }}
+                style={{ width: ((index + 1) / tourSteps.length) * 100 + '%' }}
               ></div>
             </div>
             
@@ -529,34 +691,34 @@ function Dashboard({ onBackToLanding }) {
           if (status === 'finished' || status === 'skipped') {
             setRunTour(false);
             if (status === 'finished') {
-              console.log('🎉 Tour completed successfully!');
+              console.log('Tour completed successfully!');
             }
           }
           
           // Handle step navigation
           if (type === 'step:after') {
-            console.log(`📍 Tour step ${index + 1} completed`);
+            console.log('Tour step ' + (index + 1) + ' completed');
           }
           
           if (type === 'step:before') {
-            console.log(`🎯 Tour step ${index + 1} starting`);
+            console.log('Tour step ' + (index + 1) + ' starting');
             // Check if target element exists
             if (step && step.target) {
               const targetElement = document.querySelector(step.target);
-              console.log(`Target element for step ${index + 1}:`, targetElement);
+              console.log('Target element for step ' + (index + 1) + ':', targetElement);
               if (!targetElement) {
-                console.warn(`⚠️ Target element not found: ${step.target}`);
+                console.warn('Target element not found: ' + step.target);
               }
             }
           }
           
           // Handle tour start
           if (type === 'tour:start') {
-            console.log('🚀 Tour started');
+            console.log('Tour started');
             // Check all target elements
             tourSteps.forEach((step, idx) => {
               const targetElement = document.querySelector(step.target);
-              console.log(`Step ${idx + 1} target (${step.target}):`, targetElement);
+              console.log('Step ' + (idx + 1) + ' target (' + step.target + '):', targetElement);
             });
           }
           
@@ -600,18 +762,18 @@ function Dashboard({ onBackToLanding }) {
           <div className="flex flex-wrap items-center gap-2 md:space-x-2">
             <button
               onClick={() => setActiveTab('network')}
-              className={`flex items-center space-x-2 px-3 py-2 rounded-lg text-black text-sm font-black border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all ${
-                activeTab === 'network' ? 'bg-cyan-300' : 'bg-white'
-              }`}
+              className={'flex items-center space-x-2 px-3 py-2 rounded-lg text-black text-sm font-black border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all ' + 
+                (activeTab === 'network' ? 'bg-cyan-300' : 'bg-white')
+              }
             >
               <Network size={16} />
               <span>Network</span>
             </button>
             <button
               onClick={() => setActiveTab('analytics')}
-              className={`flex items-center space-x-2 px-3 py-2 rounded-lg text-black text-sm font-black border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all ${
-                activeTab === 'analytics' ? 'bg-pink-300' : 'bg-white'
-              }`}
+              className={'flex items-center space-x-2 px-3 py-2 rounded-lg text-black text-sm font-black border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all ' + 
+                (activeTab === 'analytics' ? 'bg-pink-300' : 'bg-white')
+              }
             >
               <BarChart3 size={16} />
               <span>Analytics</span>
@@ -622,6 +784,31 @@ function Dashboard({ onBackToLanding }) {
           {/* Right: User, Wallet, and Status Controls */}
           <div className="flex flex-wrap items-center gap-2 md:space-x-3">
             <NotificationCenter />
+            <button
+              onClick={() => {
+                // Test notification with random types
+                const types = ['info', 'success', 'warning', 'error'];
+                const categories = ['system', 'transaction', 'network', 'agent', 'download'];
+                const severity = types[Math.floor(Math.random() * types.length)];
+                const category = categories[Math.floor(Math.random() * categories.length)];
+                
+                addNotification({
+                  title: `Test ${severity.charAt(0).toUpperCase() + severity.slice(1)} Notification`,
+                  message: `This is a test ${category} notification with ${severity} severity`,
+                  severity: severity,
+                  category: category,
+                  type: 'persistent',
+                  action: {
+                    label: 'Dismiss',
+                    onClick: () => console.log('Test notification dismissed')
+                  }
+                });
+              }}
+              className="p-2 rounded-lg bg-purple-200 hover:bg-purple-300 border-2 border-black"
+              aria-label="Test notification"
+            >
+              <Bell className="w-5 h-5" />
+            </button>
             <SettingsIcon onClick={() => setShowSettingsPanel(true)} />
             {/* Landing button removed. Navigation now on logo. */}
             <button
@@ -638,25 +825,18 @@ function Dashboard({ onBackToLanding }) {
             <div className="flex items-center space-x-2">
               <button
                 onClick={() => setShowWalletHistory(!showWalletHistory)}
-                className="flex items-center justify-center w-10 h-10 rounded-lg bg-yellow-300 border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:bg-yellow-400 transition-all"
+                className="flex items-center space-x-2 px-3 py-2 rounded-lg bg-yellow-300 border-3 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:translate-x-1 hover:translate-y-1 hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all wallet-balance"
                 aria-label="Show wallet balance"
               >
-                <ShoppingCart size={20} />
+                <ShoppingCart size={18} className="mr-1" />
+                <span className="font-bold text-sm">{balance ? balance.toFixed(2) : "0.00"} ICP</span>
               </button>
-              {showWalletHistory && (
-                <div className="flex items-center px-3 py-1.5 rounded-lg bg-yellow-300 border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] wallet-balance ml-2">
-                  <span className="text-xs text-black font-black">{walletBalance.toFixed(2)} ICP</span>
-                  {pendingPayments.length > 0 && (
-                    <div className="w-2 h-2 rounded-full bg-orange-500 border border-black animate-pulse ml-2"></div>
-                  )}
-                </div>
-              )}
             </div>
             <div className="flex items-center space-x-2 px-3 py-1.5 rounded-lg bg-lime-300 border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
-              <div className={`w-2 h-2 rounded-full ${
-                isConnectedToICP ? 'bg-green-500 border border-black' :
-                isMockMode ? 'bg-yellow-500 border border-black' : 'bg-red-500 border border-black'
-              }`}></div>
+              <div className={'w-2 h-2 rounded-full ' + 
+                (isConnectedToICP ? 'bg-green-500 border border-black' :
+                isMockMode ? 'bg-yellow-500 border border-black' : 'bg-red-500 border border-black')
+              }></div>
               <span className="text-xs text-black font-black">{agentStatus}</span>
             </div>
           </div>
@@ -706,10 +886,10 @@ function Dashboard({ onBackToLanding }) {
                       <div className="flex items-center justify-between mb-2">
                         <div className="flex items-center space-x-2 flex-1 min-w-0">
                           <h4 className="text-sm font-black text-black truncate">{provider.name}</h4>
-                          <div className={`w-2 h-2 rounded-full border border-black flex-shrink-0 ${
-                            selectedProvider?.id === provider.id && isNegotiating ? 'bg-yellow-500' :
-                            provider.availability === 'available' ? 'bg-green-500' : 'bg-orange-500'
-                          }`}></div>
+                          <div className={"w-2 h-2 rounded-full border border-black flex-shrink-0 " + 
+                            (selectedProvider?.id === provider.id && isNegotiating ? 'bg-yellow-500' :
+                            provider.availability === 'available' ? 'bg-green-500' : 'bg-orange-500')
+                          }></div>
                         </div>
                         <div className="text-sm font-black text-green-600 flex-shrink-0">{provider.currentPrice} ICP</div>
                       </div>
@@ -743,15 +923,15 @@ function Dashboard({ onBackToLanding }) {
                   Negotiating with {selectedProvider.name}
                 </h3>
                 <div className="flex items-center space-x-2">
-                  <div className={`w-3 h-3 rounded-full border border-black animate-pulse ${
-                    negotiationStatus === 'connecting' ? 'bg-blue-500' :
+                  <div className={'w-3 h-3 rounded-full border border-black animate-pulse ' + 
+                    (negotiationStatus === 'connecting' ? 'bg-blue-500' :
                     negotiationStatus === 'authenticating' ? 'bg-yellow-500' :
                     negotiationStatus === 'price_discussion' ? 'bg-orange-500' :
                     negotiationStatus === 'quality_verification' ? 'bg-purple-500' :
                     negotiationStatus === 'contract_creation' ? 'bg-cyan-500' :
                     negotiationStatus === 'success' ? 'bg-green-500' :
-                    negotiationStatus === 'failed' ? 'bg-red-500' : 'bg-gray-500'
-                  }`}></div>
+                    negotiationStatus === 'failed' ? 'bg-red-500' : 'bg-gray-500')
+                  }></div>
                   <span className="text-xs text-black font-bold">
                     {negotiationStatus === 'connecting' && 'Establishing connection...'}
                     {negotiationStatus === 'authenticating' && 'Authenticating credentials...'}
@@ -792,7 +972,7 @@ function Dashboard({ onBackToLanding }) {
                       <div className="w-full bg-gray-200 border border-black rounded-full h-2">
                         <div
                           className="bg-cyan-500 border-r border-black h-full rounded-full transition-all duration-300"
-                          style={{ width: `${delivery.progress}%` }}
+                          style={{ width: delivery.progress + '%' }}
                         ></div>
                       </div>
                     </div>
@@ -851,7 +1031,7 @@ function Dashboard({ onBackToLanding }) {
                       <div className="w-full bg-gray-200 border border-black rounded-full h-2">
                         <div
                           className="bg-green-500 border-r border-black h-full rounded-full transition-all duration-300"
-                          style={{ width: `${download.progress}%` }}
+                          style={{ width: download.progress + '%' }}
                         ></div>
                       </div>
                     </div>
@@ -918,7 +1098,7 @@ function Dashboard({ onBackToLanding }) {
                 onClick={toggleNetworkNodesDropdown}
               >
                 <h3 className="text-xs font-black text-black uppercase tracking-wide">Network Nodes</h3>
-                <div className={`transform transition-transform duration-200 ${isNetworkNodesDropdownOpen ? "rotate-180" : ""}`}>
+                <div className={'transform transition-transform duration-200 ' + (isNetworkNodesDropdownOpen ? "rotate-180" : "")}>
                   <svg className="w-4 h-4 text-black" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                   </svg>
@@ -940,10 +1120,10 @@ function Dashboard({ onBackToLanding }) {
                   ].map((node, idx) => (
                     <div key={node.id} className="flex items-center justify-between p-2 bg-orange-200 border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] rounded">
                       <div className="flex items-center space-x-2">
-                        <div className={`w-2 h-2 rounded-full border border-black ${
-                          node.status === "online" ? "bg-green-500" :
-                          node.status === "maintenance" ? "bg-yellow-500" : "bg-red-500"
-                        }`}></div>
+                        <div className={"w-2 h-2 rounded-full border border-black " + 
+                          (node.status === "online" ? "bg-green-500" :
+                          node.status === "maintenance" ? "bg-yellow-500" : "bg-red-500")
+                        }></div>
                         <span className="text-xs text-black font-black">{node.id}</span>
                       </div>
                       <span className="text-xs text-black font-black">{node.load}</span>
@@ -991,11 +1171,11 @@ function Dashboard({ onBackToLanding }) {
                           <button
                             onClick={handleScan}
                             disabled={isScanning}
-                            className={`px-2 py-1 border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] rounded text-xs text-black font-black transition-all ${
-                              isScanning
+                            className={"px-2 py-1 border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] rounded text-xs text-black font-black transition-all " + 
+                              (isScanning
                                 ? 'bg-gray-300 cursor-not-allowed'
-                                : 'bg-blue-400 hover:translate-x-1 hover:translate-y-1 hover:shadow-[1px_1px_0px_0px_rgba(0,0,0,1)]'
-                            }`}
+                                : 'bg-blue-400 hover:translate-x-1 hover:translate-y-1 hover:shadow-[1px_1px_0px_0px_rgba(0,0,0,1)]')
+                            }
                           >
                             {isScanning ? 'SCANNING...' : 'SCAN'}
                           </button>
@@ -1068,7 +1248,7 @@ function Dashboard({ onBackToLanding }) {
                             <div key={index} className="flex items-center space-x-2">
                               <div className="w-24 text-xs font-bold text-black">{category.name}</div>
                               <div className="flex-1 bg-gray-200 border-2 border-black rounded-full h-4">
-                                <div className={`${category.color} h-4 rounded-full border-r-2 border-black`} style={{width: `${category.value}%`}}></div>
+                                <div className={category.color + " h-4 rounded-full border-r-2 border-black"} style={{width: category.value + "%"}}></div>
                               </div>
                               <div className="text-xs font-black text-black w-8">{category.value}%</div>
                             </div>
@@ -1185,82 +1365,105 @@ function Dashboard({ onBackToLanding }) {
                     <RealtimeLog logs={logs} />
                   </div>
                 </div>
-                {/* Active Connections */}
+                {/* Active Connections Dropdown */}
                 <div className="space-y-3">
-                  <h3 className="text-xs font-black text-black uppercase tracking-wide">Active Connections</h3>
-                  <div className="space-y-2">
-                    {activeConnections.length > 0 ? activeConnections.map((conn, index) => (
-                      <div key={index} className="p-2 bg-cyan-200 border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] rounded">
-                        <div className="flex items-center justify-between mb-1">
-                          <span className="text-xs text-black font-black">{conn.provider}</span>
-                          <div className={`w-2 h-2 rounded-full border border-black ${
-                            conn.status === 'active' ? 'bg-green-500' : 'bg-yellow-500'
-                          }`}></div>
-                        </div>
-                        <div className="flex items-center justify-between">
-                          <span className="text-xs text-black font-bold">{conn.dataType}</span>
-                          <span className="text-xs text-black font-black">{conn.price} ICP</span>
-                        </div>
-                      </div>
-                    )) : [
-                      { peer: "peer-001.genesis.net", region: "US-East", ping: "12ms", status: "stable" },
-                      { peer: "peer-047.genesis.net", region: "EU-West", ping: "45ms", status: "stable" },
-                      { peer: "peer-123.genesis.net", region: "Asia-Pac", ping: "78ms", status: "unstable" },
-                      { peer: "peer-089.genesis.net", region: "US-West", ping: "23ms", status: "stable" }
-                    ].map((conn, index) => (
-                      <div key={index} className="p-2 bg-cyan-200 border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] rounded">
-                        <div className="flex items-center justify-between mb-1">
-                          <span className="text-xs text-black font-black">{conn.peer}</span>
-                          <div className={`w-2 h-2 rounded-full border border-black ${
-                            conn.status === 'stable' ? 'bg-green-500' : 'bg-yellow-500'
-                          }`}></div>
-                        </div>
-                        <div className="flex items-center justify-between">
-                          <span className="text-xs text-black font-bold">{conn.region}</span>
-                          <span className="text-xs text-black font-black">{conn.ping}</span>
-                        </div>
-                      </div>
-                    ))}
+                  <div 
+                    className="flex items-center justify-between p-2 bg-cyan-200 border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] rounded cursor-pointer hover:bg-cyan-300 transition-colors"
+                    onClick={toggleActiveConnectionsDropdown}
+                  >
+                    <h3 className="text-xs font-black text-black uppercase tracking-wide">Active Connections</h3>
+                    <div className={'transform transition-transform duration-200 ' + (isActiveConnectionsDropdownOpen ? "rotate-180" : "")}>
+                      <svg className="w-4 h-4 text-black" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                      </svg>
+                    </div>
                   </div>
+                  {isActiveConnectionsDropdownOpen && (
+                    <div className="space-y-2 max-h-60 overflow-y-auto">
+                      {activeConnections.length > 0 ? activeConnections.map((conn, index) => (
+                        <div key={index} className="p-2 bg-cyan-200 border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] rounded">
+                          <div className="flex items-center justify-between mb-1">
+                            <span className="text-xs text-black font-black">{conn.provider}</span>
+                            <div className={'w-2 h-2 rounded-full border border-black ' + 
+                              (conn.status === 'active' ? 'bg-green-500' : 'bg-yellow-500')
+                            }></div>
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs text-black font-bold">{conn.dataType}</span>
+                            <span className="text-xs text-black font-black">{conn.price} ICP</span>
+                          </div>
+                        </div>
+                      )) : [
+                        { peer: "peer-001.genesis.net", region: "US-East", ping: "12ms", status: "stable" },
+                        { peer: "peer-047.genesis.net", region: "EU-West", ping: "45ms", status: "stable" },
+                        { peer: "peer-123.genesis.net", region: "Asia-Pac", ping: "78ms", status: "unstable" },
+                        { peer: "peer-089.genesis.net", region: "US-West", ping: "23ms", status: "stable" }
+                      ].map((conn, index) => (
+                        <div key={index} className="p-2 bg-cyan-200 border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] rounded">
+                          <div className="flex items-center justify-between mb-1">
+                            <span className="text-xs text-black font-black">{conn.peer}</span>
+                            <div className={"w-2 h-2 rounded-full border border-black " + (conn.status === 'stable' ? 'bg-green-500' : 'bg-yellow-500')
+                            }></div>
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs text-black font-bold">{conn.region}</span>
+                            <span className="text-xs text-black font-black">{conn.ping}</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
-                {/* Transaction Pool */}
+                {/* Transaction Pool Dropdown */}
                 <div className="space-y-3">
-                  <h3 className="text-xs font-black text-black uppercase tracking-wide">Transaction Pool</h3>
-                  <div className="space-y-2">
-                    {transactionPool.length > 0 ? transactionPool.slice(0, 5).map((tx, index) => (
-                      <div key={index} className="p-2 bg-lime-200 border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] rounded">
-                        <div className="flex items-center justify-between mb-1">
-                          <span className="text-xs text-black font-black">{tx.id}</span>
-                          <div className={`w-1.5 h-1.5 rounded-full border border-black ${
-                            tx.status === 'confirmed' ? 'bg-green-500' :
-                            tx.status === 'processing' ? 'bg-yellow-500' : 'bg-blue-500'
-                          }`}></div>
-                        </div>
-                        <div className="flex items-center justify-between">
-                          <span className="text-xs text-black font-bold">{tx.type}</span>
-                          <span className="text-xs text-black font-black">{tx.amount}</span>
-                        </div>
-                      </div>
-                    )) : [
-                      { id: "TX001", type: "Data Transfer", amount: "0.5 ICP", status: "pending" },
-                      { id: "TX002", type: "Smart Contract", amount: "1.2 ICP", status: "confirming" },
-                      { id: "TX003", type: "Governance Vote", amount: "0.1 ICP", status: "confirmed" }
-                    ].map((tx, index) => (
-                      <div key={index} className="p-2 bg-lime-200 border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] rounded">
-                        <div className="flex items-center justify-between mb-1">
-                          <span className="text-xs text-black font-black">{tx.id}</span>
-                          <div className={`w-1.5 h-1.5 rounded-full border border-black ${
-                            tx.status === 'confirmed' ? 'bg-green-500' :
-                            tx.status === 'confirming' ? 'bg-yellow-500' : 'bg-blue-500'
-                          }`}></div>
-                        </div>
-                        <div className="flex items-center justify-between">
-                          <span className="text-xs text-black font-bold">{tx.type}</span>
-                          <span className="text-xs text-black font-black">{tx.amount}</span>
-                        </div>
-                      </div>
-                    ))}
+                  <div 
+                    className="flex items-center justify-between p-2 bg-lime-200 border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] rounded cursor-pointer hover:bg-lime-300 transition-colors"
+                    onClick={toggleTransactionPoolDropdown}
+                  >
+                    <h3 className="text-xs font-black text-black uppercase tracking-wide">Transaction Pool</h3>
+                    <div className={'transform transition-transform duration-200 ' + (isTransactionPoolDropdownOpen ? "rotate-180" : "")}>
+                      <svg className="w-4 h-4 text-black" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                      </svg>
+                    </div>
                   </div>
+                  {isTransactionPoolDropdownOpen && (
+                    <div className="space-y-2 max-h-60 overflow-y-auto">
+                      {transactionPool.length > 0 ? transactionPool.slice(0, 5).map((tx, index) => (
+                        <div key={index} className="p-2 bg-lime-200 border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] rounded">
+                          <div className="flex items-center justify-between mb-1">
+                            <span className="text-xs text-black font-black">{tx.id}</span>
+                            <div className={"w-1.5 h-1.5 rounded-full border border-black " + 
+                              (tx.status === 'confirmed' ? 'bg-green-500' :
+                              tx.status === 'processing' ? 'bg-yellow-500' : 'bg-blue-500')
+                            }></div>
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs text-black font-bold">{tx.type}</span>
+                            <span className="text-xs text-black font-black">{tx.amount}</span>
+                          </div>
+                        </div>
+                      )) : [
+                        { id: "TX001", type: "Data Transfer", amount: "0.5 ICP", status: "pending" },
+                        { id: "TX002", type: "Smart Contract", amount: "1.2 ICP", status: "confirming" },
+                        { id: "TX003", type: "Governance Vote", amount: "0.1 ICP", status: "confirmed" }
+                      ].map((tx, index) => (
+                        <div key={index} className="p-2 bg-lime-200 border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] rounded">
+                          <div className="flex items-center justify-between mb-1">
+                            <span className="text-xs text-black font-black">{tx.id}</span>
+                            <div className={"w-1.5 h-1.5 rounded-full border border-black " + 
+                              (tx.status === 'confirmed' ? 'bg-green-500' :
+                              tx.status === 'confirming' ? 'bg-yellow-500' : 'bg-blue-500')
+                            }></div>
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs text-black font-bold">{tx.type}</span>
+                            <span className="text-xs text-black font-black">{tx.amount}</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </>
             )}
@@ -1334,7 +1537,7 @@ function Dashboard({ onBackToLanding }) {
                     ].map((trend, index) => (
                       <div key={index} className="flex justify-between p-2 bg-purple-100 border border-black rounded">
                         <span className="text-xs text-black font-bold">{trend.category}</span>
-                        <span className={`text-xs font-black ${trend.color}`}>{trend.change}</span>
+                        <span className={"text-xs font-black " + trend.color}>{trend.change}</span>
                       </div>
                     ))}
                   </div>
@@ -1354,11 +1557,11 @@ function Dashboard({ onBackToLanding }) {
                       <div key={index} className="p-2 bg-lime-100 border border-black rounded text-xs">
                         <div className="flex items-center justify-between mb-1">
                           <span className="font-black text-black">{event.time}</span>
-                          <div className={`w-2 h-2 rounded-full border border-black ${
-                            event.type === 'success' ? 'bg-green-500' :
+                          <div className={"w-2 h-2 rounded-full border border-black " + 
+                            (event.type === 'success' ? 'bg-green-500' :
                             event.type === 'warning' ? 'bg-yellow-500' :
-                            event.type === 'error' ? 'bg-red-500' : 'bg-blue-500'
-                          }`}></div>
+                            event.type === 'error' ? 'bg-red-500' : 'bg-blue-500')
+                          }></div>
                         </div>
                         <div className="text-black font-bold">{event.event}</div>
                       </div>
@@ -1392,9 +1595,9 @@ function Dashboard({ onBackToLanding }) {
       {/* Wallet History Modal */}
       {showWalletHistory && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-yellow-300 border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] p-6 rounded-lg max-w-2xl w-full max-h-[80vh] overflow-auto">
+          <div className="bg-white border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] p-6 rounded-lg max-w-3xl w-full max-h-[80vh] overflow-auto">
             <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-black text-black">💰 WALLET FUNDING HISTORY</h2>
+              <h2 className="text-xl font-black text-black">💰 ICP WALLET</h2>
               <button
                 onClick={() => setShowWalletHistory(false)}
                 className="px-3 py-1 bg-red-300 text-black font-black border-2 border-black rounded shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:translate-x-1 hover:translate-y-1 hover:shadow-[1px_1px_0px_0px_rgba(0,0,0,1)]"
@@ -1403,50 +1606,7 @@ function Dashboard({ onBackToLanding }) {
               </button>
             </div>
             
-            <div className="space-y-3">
-              <div className="bg-white border-2 border-black p-3 rounded">
-                <h3 className="font-black text-black mb-2">Current Balance</h3>
-                <div className="text-2xl font-black text-green-600">{walletBalance.toFixed(2)} ICP</div>
-              </div>
-              
-              <div className="bg-white border-2 border-black p-3 rounded">
-                <h3 className="font-black text-black mb-3">Funding Sources</h3>
-                {fundingHistory.length > 0 ? (
-                  <div className="space-y-2">
-                    {fundingHistory.map((funding, index) => (
-                      <div key={index} className="flex justify-between items-center p-2 bg-gray-100 border border-black rounded">
-                        <div>
-                          <div className="font-black text-sm">{funding.source}</div>
-                          <div className="text-xs text-gray-600">{funding.description}</div>
-                          <div className="text-xs text-gray-500">{new Date(funding.timestamp).toLocaleDateString()}</div>
-                        </div>
-                        <div className="font-black text-green-600">+{typeof funding.amount === 'number' && !isNaN(funding.amount) ? funding.amount.toFixed(2) : '0.00'} ICP</div>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="text-gray-500 text-sm">No funding history available</div>
-                )}
-              </div>
-              
-              {paymentHistory.length > 0 && (
-                <div className="bg-white border-2 border-black p-3 rounded">
-                  <h3 className="font-black text-black mb-3">Recent Payments</h3>
-                  <div className="space-y-2">
-                    {paymentHistory.slice(-5).map((payment, index) => (
-                      <div key={index} className="flex justify-between items-center p-2 bg-red-50 border border-black rounded">
-                        <div>
-                          <div className="font-black text-sm">{payment.dataProvider}</div>
-                          <div className="text-xs text-gray-600">{payment.dataType} - {payment.records} records</div>
-                          <div className="text-xs text-gray-500">{new Date(payment.timestamp).toLocaleDateString()}</div>
-                        </div>
-                        <div className="font-black text-red-600">-{typeof payment.amount === 'number' && !isNaN(payment.amount) ? payment.amount.toFixed(2) : '0.00'} ICP</div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
+            <WalletInfoPanel />
           </div>
         </div>
       )}
@@ -1455,4 +1615,3 @@ function Dashboard({ onBackToLanding }) {
 }
 
 export default Dashboard;
-

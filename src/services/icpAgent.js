@@ -1,62 +1,54 @@
 ﻿// ICP Agent Service - Connects frontend to real backend agents
+import { icpLedgerService, initiatePayment as startICPPayment } from './icpLedgerService';
+import { identityService } from './identityService';
+import { Principal } from '@dfinity/principal';
 
 // Real backend server configuration
-const BACKEND_SERVER_URL = 'http://localhost:4943';
-const CANISTER_IDS = {
-  data_requester: 'rdmx6-jaaaa-aaaaa-aaadq-cai',
-  data_provider: 'rrkah-fqaaa-aaaaa-aaaaq-cai',
-  reputation_agent: 'rno2w-sqaaa-aaaaa-aaacq-cai'
+const BACKEND_SERVER_URL = 'http://localhost:8000';
+const API_BASE_URL = `${BACKEND_SERVER_URL}/api`;
+
+// Canister IDs
+export const CANISTER_IDS = {
+  ledger: "ryjl3-tyaaa-aaaaa-aaaba-cai", // Official ICP Ledger Canister ID
+  data_requester: "czjfs-wqaaa-aaaap-aaq5q-cai", 
+  data_provider: "ctiya-peaaa-aaaap-aaq6a-cai",
+  reputation_agent: "cakwm-aaaaa-aaaap-aaq6q-cai"
 };
 
-// Mock data for fallback scenarios
-const mockLogs = [
-  { timestamp: new Date().toISOString(), level: 'INFO', message: 'Data Provider Agent initialized', agent: 'provider' },
-  { timestamp: new Date(Date.now() - 60000).toISOString(), level: 'INFO', message: 'Data Requester Agent started search', agent: 'requester' },
-  { timestamp: new Date(Date.now() - 120000).toISOString(), level: 'SUCCESS', message: 'Transaction completed successfully', agent: 'reputation' },
-  { timestamp: new Date(Date.now() - 180000).toISOString(), level: 'INFO', message: 'New data offer received', agent: 'provider' },
-  { timestamp: new Date(Date.now() - 240000).toISOString(), level: 'WARNING', message: 'High network latency detected', agent: 'network' }
-];
-
-const mockMetrics = {
-  totalTransactions: 142,
-  activeProviders: 8,
-  averageResponseTime: 1.2,
-  networkHealth: 95,
-  reputationScore: 8.7
-};
-
-const mockNetworkData = {
-  nodes: [
-    { id: 'requester', name: 'Data Requester Agent', type: 'requester', status: 'active', fx: 400, fy: 300 },
-    { id: 'provider1', name: 'FinanceData Corp', type: 'provider', reputation: 9.2, price: '100 ICP', status: 'active', location: 'US-East' },
-    { id: 'provider2', name: 'SocialInsights Ltd', type: 'provider', reputation: 7.8, price: '120 ICP', status: 'active', location: 'EU-West' },
-    { id: 'provider3', name: 'ResearchData Hub', type: 'provider', reputation: 8.5, price: '95 ICP', status: 'negotiating', location: 'Asia-Pacific' },
-    { id: 'provider4', name: 'MediaStream AI', type: 'provider', reputation: 6.9, price: '85 ICP', status: 'active', location: 'US-West' }
-  ],
-  links: [
-    { source: 'requester', target: 'provider1', strength: 0.8, status: 'active' },
-    { source: 'requester', target: 'provider2', strength: 0.6, status: 'idle' },
-    { source: 'requester', target: 'provider3', strength: 0.7, status: 'negotiating' },
-    { source: 'requester', target: 'provider4', strength: 0.5, status: 'active' }
-  ]
-};
+// Auth token management
+let authToken = null;
 
 // Helper function to make API calls to backend server
-async function callBackendServer(endpoint, method = 'GET', data = null) {
+async function callBackendAPI(endpoint, method = 'GET', data = null, requiresAuth = true) {
   try {
+    const headers = {
+      'Content-Type': 'application/json',
+      'Accept': 'application/json'
+    };
+
+    // Add auth token if available and required
+    if (requiresAuth && authToken) {
+      headers['Authorization'] = `Bearer ${authToken}`;
+    }
+
     const options = {
       method,
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json'
-      }
+      headers
     };
 
     if (data && method !== 'GET') {
       options.body = JSON.stringify(data);
     }
 
-    const response = await fetch(`${BACKEND_SERVER_URL}${endpoint}`, options);
+    const response = await fetch(`${API_BASE_URL}${endpoint}`, options);
+    
+    if (response.status === 401) {
+      // Handle auth error - clear token and redirect to login
+      authToken = null;
+      localStorage.removeItem('authToken');
+      window.location.href = '/login';
+      throw new Error('Authentication required');
+    }
     
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
@@ -64,45 +56,135 @@ async function callBackendServer(endpoint, method = 'GET', data = null) {
     
     return await response.json();
   } catch (error) {
-    console.warn('Backend server call failed, using fallback data:', error);
-    return { status: 'fallback', error: error.message };
+    console.warn('Backend API call failed:', error);
+    throw error;
   }
 }
 
 /**
- * Get agent logs from Data Requester Agent
+ * Set the authentication token for future API calls
  */
-export async function getAgentLogs(startTime, endTime) {
+export function setAuthToken(token) {
+  authToken = token;
+  localStorage.setItem('authToken', token);
+}
+
+/**
+ * Get the current authentication token
+ */
+export function getAuthToken() {
+  if (!authToken) {
+    authToken = localStorage.getItem('authToken');
+  }
+  return authToken;
+}
+
+/**
+ * Clear the authentication token (logout)
+ */
+export function clearAuthToken() {
+  authToken = null;
+  localStorage.removeItem('authToken');
+}
+
+/**
+ * Register a new user
+ */
+export async function registerUser(userData) {
   try {
-    const response = await callBackendServer(
-      `/api/v2/canister/${CANISTER_IDS.data_requester}/call`,
-      'POST',
-      {
-        method_name: 'get_logs',
-        arg: JSON.stringify({ startTime, endTime })
-      }
-    );
-
-    if (response.status === 'fallback') {
-      return {
-        success: true,
-        logs: mockLogs,
-        message: 'Using fallback data (backend unavailable)'
-      };
-    }
-
-    return {
-      success: response.status === 'replied',
-      logs: JSON.parse(response.reply?.arg || '[]'),
-      message: 'Logs retrieved successfully'
-    };
+    return await callBackendAPI('/users/register', 'POST', userData, false);
   } catch (error) {
-    console.error('Error getting agent logs:', error);
+    console.error('Error registering user:', error);
     return {
       success: false,
-      logs: mockLogs,
-      error: error.message,
-      message: 'Failed to retrieve logs, using fallback data'
+      message: error.message || 'Registration failed'
+    };
+  }
+}
+
+/**
+ * Login user and get authentication token
+ */
+export async function loginUser(credentials) {
+  try {
+    // Use token endpoint for login
+    const formData = new URLSearchParams();
+    formData.append('username', credentials.username);
+    formData.append('password', credentials.password);
+
+    const response = await fetch(`${BACKEND_SERVER_URL}/token`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: formData
+    });
+
+    if (!response.ok) {
+      throw new Error('Login failed');
+    }
+
+    const data = await response.json();
+    setAuthToken(data.access_token);
+
+    return {
+      success: true,
+      token: data.access_token,
+      message: 'Login successful'
+    };
+  } catch (error) {
+    console.error('Error logging in:', error);
+    return {
+      success: false,
+      message: error.message || 'Login failed'
+    };
+  }
+}
+
+/**
+ * Get the current user's profile
+ */
+export async function getUserProfile() {
+  try {
+    return await callBackendAPI('/users/me', 'GET');
+  } catch (error) {
+    console.error('Error getting user profile:', error);
+    return {
+      success: false,
+      message: error.message || 'Failed to fetch profile'
+    };
+  }
+}
+
+/**
+ * Get network metrics
+ */
+export async function getNetworkMetrics() {
+  try {
+    // Try to get metrics from backend
+    const response = await callBackendAPI('/network/metrics', 'GET');
+    
+    return {
+      success: true,
+      metrics: response.metrics,
+      message: 'Metrics retrieved successfully'
+    };
+  } catch (error) {
+    console.error('Error getting network metrics:', error);
+    
+    // Fallback to mock data
+    const mockMetrics = {
+      totalTransactions: 142,
+      activeProviders: 8,
+      averageResponseTime: 1.2,
+      networkHealth: 95,
+      reputationScore: 8.7
+    };
+    
+    return {
+      success: true,
+      metrics: mockMetrics,
+      message: 'Using fallback data (backend unavailable)'
     };
   }
 }
@@ -329,6 +411,246 @@ export async function negotiateWithProvider(providerId, terms = {}) {
   }
 }
 
+/**
+ * Initiate payment to a data provider using ICP Ledger
+ * @param {string} providerId - Principal ID of the data provider
+ * @param {number} amountICP - Amount to pay in ICP
+ * @param {Object} metadata - Additional payment metadata
+ * @returns {Promise<Object>} - Transaction details
+ */
+export async function initiatePayment(providerId, amountICP, metadata = {}) {
+  try {
+    console.log(`Initiating payment of ${amountICP} ICP to provider ${providerId}`);
+    
+    // Ensure identity is initialized
+    if (!identityService.isInitialized) {
+      await identityService.initialize();
+    }
+    
+    // Convert provider ID to Principal if it's a string
+    let providerPrincipal;
+    try {
+      providerPrincipal = typeof providerId === 'string' ? 
+        Principal.fromText(providerId) : providerId;
+    } catch (error) {
+      console.error("Invalid provider ID format:", error);
+      return {
+        success: false,
+        error: "INVALID_PROVIDER_ID",
+        message: "Invalid provider ID format"
+      };
+    }
+    
+    // Call the ICP Ledger service to make the payment
+    const result = await icpLedgerService.transfer(providerPrincipal, amountICP, {
+      memo: Date.now(),
+      description: metadata.description || "Payment for data services"
+    });
+    
+    if (result.success) {
+      // Record the transaction with the reputation agent
+      try {
+        await callBackendServer(
+          `/api/v2/canister/${CANISTER_IDS.reputation_agent}/call`,
+          'POST',
+          {
+            method_name: 'record_transaction',
+            arg: JSON.stringify({
+              provider_id: providerId,
+              transaction_id: result.transactionId,
+              amount: amountICP,
+              timestamp: Date.now(),
+              status: 'completed',
+              metadata
+            })
+          }
+        );
+      } catch (error) {
+        console.warn("Failed to record transaction with reputation agent:", error);
+        // Continue anyway, as the payment was successful
+      }
+      
+      return {
+        success: true,
+        transactionId: result.transactionId,
+        blockHeight: result.blockHeight,
+        amount: amountICP,
+        timestamp: result.timestamp,
+        message: 'Payment completed successfully'
+      };
+    } else {
+      return {
+        success: false,
+        error: result.error,
+        errorDetails: result.errorDetails,
+        message: `Payment failed: ${result.error}`
+      };
+    }
+  } catch (error) {
+    console.error('Error initiating payment:', error);
+    
+    // In development mode, simulate a successful transaction
+    if (process.env.NODE_ENV !== 'production') {
+      const mockTxId = `mock-tx-${Date.now()}`;
+      return {
+        success: true,
+        transactionId: mockTxId,
+        blockHeight: Math.floor(Math.random() * 1000000).toString(),
+        amount: amountICP,
+        timestamp: Date.now(),
+        message: 'Payment completed (mock transaction)',
+        mock: true
+      };
+    }
+    
+    return {
+      success: false,
+      error: error.message,
+      message: 'Payment processing failed'
+    };
+  }
+}
+
+/**
+ * Get user wallet balance from ICP Ledger
+ * @returns {Promise<Object>} - Balance information
+ */
+export async function getWalletBalance() {
+  try {
+    // Ensure identity is initialized
+    if (!identityService.isInitialized) {
+      await identityService.initialize();
+    }
+    
+    // Get the user's principal
+    const principal = identityService.getPrincipal();
+    if (!principal) {
+      throw new Error("No identity available");
+    }
+    
+    // Call the ICP Ledger to get the balance
+    const balance = await icpLedgerService.getBalance(principal);
+    
+    return {
+      success: true,
+      balance,
+      principalId: principal.toText(),
+      accountId: identityService.getAccountIdHex(),
+      message: 'Balance retrieved successfully'
+    };
+  } catch (error) {
+    console.error('Error getting wallet balance:', error);
+    
+    // In development mode, return mock balance
+    if (process.env.NODE_ENV !== 'production') {
+      return {
+        success: true,
+        balance: 1250.75,
+        principalId: identityService.getPrincipalText() || 'mock-principal-id',
+        accountId: identityService.getAccountIdHex() || 'mock-account-id',
+        message: 'Balance retrieved (mock data)',
+        mock: true
+      };
+    }
+    
+    return {
+      success: false,
+      error: error.message,
+      message: 'Failed to retrieve wallet balance'
+    };
+  }
+}
+
+/**
+ * Get transaction history for the current user
+ * @returns {Promise<Object>} - Transaction history
+ */
+export async function getTransactionHistory() {
+  try {
+    // Ensure identity is initialized
+    if (!identityService.isInitialized) {
+      await identityService.initialize();
+    }
+    
+    // Get the user's principal
+    const principal = identityService.getPrincipal();
+    if (!principal) {
+      throw new Error("No identity available");
+    }
+    
+    // In a real implementation, we would query the ledger for transaction history
+    // This requires either indexing the ledger transactions or using a specialized service
+    // For now, we'll query our backend to see if it has cached transaction data
+    try {
+      const response = await callBackendServer(
+        `/api/v2/canister/${CANISTER_IDS.ledger}/query`,
+        'POST',
+        {
+          method_name: 'get_transactions',
+          arg: JSON.stringify({ account: identityService.getAccountIdHex() })
+        }
+      );
+      
+      if (response.status === 'replied') {
+        return {
+          success: true,
+          transactions: JSON.parse(response.reply?.arg || '[]'),
+          principalId: principal.toText(),
+          message: 'Transaction history retrieved successfully'
+        };
+      }
+    } catch (error) {
+      console.warn("Failed to get transaction history from backend:", error);
+      // Fall through to mock data
+    }
+    
+    // Generate mock transaction history
+    const mockHistory = [];
+    const now = Date.now();
+    
+    // Generate 10 mock transactions
+    for (let i = 0; i < 10; i++) {
+      const timestamp = now - (i * 86400000 * (Math.random() * 3 + 1)); // Random days back
+      const isIncoming = Math.random() > 0.4; // 60% chance of incoming
+      
+      mockHistory.push({
+        id: `tx-${Date.now()}-${i}`,
+        blockHeight: Math.floor(Math.random() * 1000000).toString(),
+        type: isIncoming ? 'receive' : 'send',
+        amount: isIncoming ? 
+          (Math.random() * 150 + 50).toFixed(2) : 
+          (Math.random() * 100 + 20).toFixed(2),
+        fee: '0.0001',
+        from: isIncoming ? 
+          `provider-${Math.floor(Math.random() * 1000)}` : 
+          principal.toText(),
+        to: isIncoming ? 
+          principal.toText() : 
+          `provider-${Math.floor(Math.random() * 1000)}`,
+        timestamp,
+        status: 'completed',
+        memo: isIncoming ? 'Data payment received' : 'Payment for data services'
+      });
+    }
+    
+    return {
+      success: true,
+      transactions: mockHistory,
+      principalId: principal.toText(),
+      message: 'Transaction history retrieved (mock data)',
+      mock: true
+    };
+  } catch (error) {
+    console.error('Error getting transaction history:', error);
+    
+    return {
+      success: false,
+      error: error.message,
+      message: 'Failed to retrieve transaction history'
+    };
+  }
+}
+
 // Export configuration for debugging
 export const config = {
   BACKEND_SERVER_URL,
@@ -343,6 +665,48 @@ export const config = {
   }
 };
 
+/**
+ * Initialize the wallet
+ * This should be called early in the application lifecycle
+ */
+export async function initializeWallet() {
+  try {
+    // Initialize identity service
+    const identityInitialized = await identityService.initialize();
+    if (!identityInitialized) {
+      console.error('Failed to initialize identity service');
+      return false;
+    }
+    
+    // The identity service already initializes the ledger service
+    return true;
+  } catch (error) {
+    console.error('Error initializing wallet:', error);
+    return false;
+  }
+}
+
+/**
+ * Get the wallet details (principal, account ID, etc.)
+ */
+export function getWalletDetails() {
+  if (!identityService.isInitialized) {
+    return {
+      initialized: false,
+      principalId: '',
+      accountId: '',
+      message: 'Wallet not initialized'
+    };
+  }
+  
+  return {
+    initialized: true,
+    principalId: identityService.getPrincipalText(),
+    accountId: identityService.getAccountIdHex(),
+    message: 'Wallet initialized'
+  };
+}
+
 // Default export
 export default {
   getAgentLogs,
@@ -352,5 +716,10 @@ export default {
   getICPConnectionStatus,
   startSearchAgent,
   negotiateWithProvider,
+  initiatePayment,
+  getWalletBalance,
+  getTransactionHistory,
+  initializeWallet,
+  getWalletDetails,
   config
 };

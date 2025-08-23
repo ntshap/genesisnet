@@ -1,0 +1,116 @@
+{
+  "hash": "a4c325c5",
+  "browserHash": "e44f64d1",
+  "optimized": {
+    "@dfinity/agent": {
+      "src": "../../node_modules/@dfinity/agent/lib/esm/index.js",
+      "file": "@dfinity_agent.js",
+      "fileHash": "710c12c7",
+      "needsInterop": false
+    },
+    "@dfinity/identity": {
+      "src": "../../node_modules/@dfinity/identity/lib/esm/index.js",
+      "file": "@dfinity_identity.js",
+      "fileHash": "1c77a6f3",
+      "needsInterop": false
+    },
+    "@dfinity/principal": {
+      "src": "../../node_modules/@dfinity/principal/lib/esm/index.js",
+      "file": "@dfinity_principal.js",
+      "fileHash": "c44579ce",
+      "needsInterop": false
+    },
+    "@dfinity/candid": {
+      "src": "../../node_modules/@dfinity/candid/lib/esm/index.js",
+      "file": "@dfinity_candid.js",
+      "fileHash": "ffd9e041",
+      "needsInterop": false
+    },
+    "react": {
+      "src": "../../node_modules/react/index.js",
+      "file": "react.js",
+      "fileHash": "260c304d",
+      "needsInterop": true
+    },
+    "react-dom": {
+      "src": "../../node_modules/react-dom/index.js",
+      "file": "react-dom.js",
+      "fileHash": "07b38303",
+      "needsInterop": true
+    },
+    "react/jsx-dev-runtime": {
+      "src": "../../node_modules/react/jsx-dev-runtime.js",
+      "file": "react_jsx-dev-runtime.js",
+      "fileHash": "63288800",
+      "needsInterop": true
+    },
+    "react/jsx-runtime": {
+      "src": "../../node_modules/react/jsx-runtime.js",
+      "file": "react_jsx-runtime.js",
+      "fileHash": "a3cf0d2d",
+      "needsInterop": true
+    },
+    "vite-plugin-node-polyfills/shims/buffer": {
+      "src": "../../node_modules/vite-plugin-node-polyfills/shims/buffer/dist/index.js",
+      "file": "vite-plugin-node-polyfills_shims_buffer.js",
+      "fileHash": "81a276e7",
+      "needsInterop": false
+    },
+    "vite-plugin-node-polyfills/shims/global": {
+      "src": "../../node_modules/vite-plugin-node-polyfills/shims/global/dist/index.js",
+      "file": "vite-plugin-node-polyfills_shims_global.js",
+      "fileHash": "73d3360a",
+      "needsInterop": false
+    },
+    "vite-plugin-node-polyfills/shims/process": {
+      "src": "../../node_modules/vite-plugin-node-polyfills/shims/process/dist/index.js",
+      "file": "vite-plugin-node-polyfills_shims_process.js",
+      "fileHash": "83ce0b33",
+      "needsInterop": false
+    },
+    "react-dom/client": {
+      "src": "../../node_modules/react-dom/client.js",
+      "file": "react-dom_client.js",
+      "fileHash": "ba7e041c",
+      "needsInterop": true
+    },
+    "react-joyride": {
+      "src": "../../node_modules/react-joyride/dist/index.mjs",
+      "file": "react-joyride.js",
+      "fileHash": "f152a73c",
+      "needsInterop": false
+    },
+    "lucide-react": {
+      "src": "../../node_modules/lucide-react/dist/esm/lucide-react.js",
+      "file": "lucide-react.js",
+      "fileHash": "873efb2c",
+      "needsInterop": false
+    },
+    "d3": {
+      "src": "../../node_modules/d3/src/index.js",
+      "file": "d3.js",
+      "fileHash": "5811973c",
+      "needsInterop": false
+    }
+  },
+  "chunks": {
+    "chunk-AQLZL5WA": {
+      "file": "chunk-AQLZL5WA.js"
+    },
+    "chunk-R2JNNGV5": {
+      "file": "chunk-R2JNNGV5.js"
+    },
+    "chunk-ZJ2KAVMQ": {
+      "file": "chunk-ZJ2KAVMQ.js"
+    },
+    "chunk-A3JIZIFX": {
+      "file": "chunk-A3JIZIFX.js"
+    },
+    "chunk-5TCXHJUI": {
+      "file": "chunk-5TCXHJUI.js"
+    },
+    "chunk-5WUIHEDG": {
+      "file": "chunk-5WUIHEDG.js"
+    }
+  }
+}

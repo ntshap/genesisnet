@@ -68,6 +68,16 @@ const useInteractiveDemo = () => {
     const saved = localStorage.getItem('genesisnet-funding-history');
     return saved ? JSON.parse(saved) : [];
   });
+  
+  // ICP wallet specific states
+  const [icpWalletAddress, setIcpWalletAddress] = useState(() => {
+    const saved = localStorage.getItem('genesisnet-icp-address');
+    return saved || `principal_${Math.random().toString(36).substring(2, 10)}`;
+  });
+  const [transactionHistory, setTransactionHistory] = useState(() => {
+    const saved = localStorage.getItem('genesisnet-transaction-history');
+    return saved ? JSON.parse(saved) : [];
+  });
 
   // Refs for intervals
   const metricsInterval = useRef(null);
@@ -94,27 +104,31 @@ const useInteractiveDemo = () => {
     const fundingScenarios = [
       {
         type: 'initial_grant',
-        amount: 500,
+        amount: 500.00,
         description: '🎁 Welcome bonus from GenesisNet',
-        source: 'GenesisNet Foundation'
+        source: 'GenesisNet Foundation',
+        timestamp: new Date('2025-08-18')
       },
       {
         type: 'referral_bonus',
         amount: 150.25,
         description: '👥 Referral bonus (3 users)',
-        source: 'Referral Program'
+        source: 'Referral Program',
+        timestamp: new Date('2025-08-19')
       },
       {
         type: 'staking_reward',
         amount: 327.50,
         description: '💎 Staking rewards (30 days)',
-        source: 'ICP Staking Pool'
+        source: 'ICP Staking Pool',
+        timestamp: new Date('2025-08-20')
       },
       {
         type: 'trading_profit',
-        amount: 273,
+        amount: 273.00,
         description: '📈 Trading profits from DeFi',
-        source: 'DEX Trading'
+        source: 'DEX Trading',
+        timestamp: new Date('2025-08-21')
       }
     ];
 
@@ -128,7 +142,7 @@ const useInteractiveDemo = () => {
         amount: scenario.amount,
         description: scenario.description,
         source: scenario.source,
-        timestamp: new Date(Date.now() - (4 - index) * 24 * 60 * 60 * 1000), // Spread over 4 days
+        timestamp: scenario.timestamp || new Date(Date.now() - (4 - index) * 24 * 60 * 60 * 1000), // Use provided timestamp or spread over 4 days
         txHash: `0x${Math.random().toString(16).substr(2, 64)}`
       };
       
@@ -799,13 +813,120 @@ const useInteractiveDemo = () => {
     addLog,
     clearLogs,
     
-    // Connection info
-    isConnectedToICP: true,
-    isMockMode: true,
-    connectionStatus: { isInitialized: true, fallbackToMock: true, hasActors: false },
-    isLoading: isSearching || isNegotiating,
-    error: null,
-    clearError: () => {}
+    // Wallet and ICP Ledger functions
+    addFunds: (amount, source, description) => {
+      if (!amount || typeof amount !== 'number' || isNaN(amount) || amount <= 0) {
+        console.error('Invalid amount for adding funds');
+        return;
+      }
+      
+      const newFundingEvent = {
+        id: `FUND${Date.now()}`,
+        type: 'manual_deposit',
+        amount: amount,
+        description: description || `💰 Manual deposit of ${amount.toFixed(2)} ICP`,
+        source: source || 'Manual Deposit',
+        timestamp: new Date(),
+        txHash: `0x${Math.random().toString(16).substr(2, 64)}`
+      };
+      
+      // Record the transaction in ICP transaction history
+      const newTransaction = {
+        id: `tx-${Date.now()}`,
+        blockHeight: Math.floor(Math.random() * 1000000).toString(),
+        type: 'receive',
+        amount: amount.toFixed(2),
+        fee: '0.0001',
+        from: source || 'ICP Faucet',
+        to: icpWalletAddress,
+        timestamp: Date.now(),
+        status: 'completed',
+        memo: description || 'ICP Deposit'
+      };
+      
+      setFundingHistory(prev => [newFundingEvent, ...prev]);
+      setWalletBalance(prev => prev + amount);
+      setTransactionHistory(prev => [newTransaction, ...prev]);
+      
+      // Save to localStorage
+      localStorage.setItem('genesisnet-wallet-balance', (walletBalance + amount).toString());
+      localStorage.setItem('genesisnet-funding-history', JSON.stringify([newFundingEvent, ...fundingHistory]));
+      localStorage.setItem('genesisnet-transaction-history', JSON.stringify([newTransaction, ...transactionHistory]));
+      
+      // Add log
+      addLog('wallet', `💰 Added ${amount.toFixed(2)} ICP to wallet from ${source || 'Manual Deposit'}`, 'success', 'wallet-system');
+      
+      return {
+        fundingEvent: newFundingEvent,
+        transaction: newTransaction
+      };
+    },
+    
+    transferFunds: async (recipient, amount, memo) => {
+      // Real ICP Ledger Service integration
+      if (!amount || typeof amount !== 'number' || isNaN(amount) || amount <= 0) {
+        console.error('Invalid amount for transfer');
+        return { success: false, error: 'Invalid amount' };
+      }
+      try {
+        // Dynamically import the real ICP Ledger Service
+        const { default: ICPLedgerService, e8sToIcp } = await import('../services/icpLedgerService.new.js');
+        // Use a singleton or static instance for demo; in real app, use context/provider
+        if (!window._icpLedgerService) {
+          window._icpLedgerService = new ICPLedgerService();
+          await window._icpLedgerService.initialize();
+        }
+        const ledger = window._icpLedgerService;
+        // Call real transfer
+        const txResult = await ledger.transfer(recipient, amount, memo || 'Payment for data services');
+        if (txResult.success) {
+          // Update states with real transaction
+          setWalletBalance(prev => prev - (amount + txResult.fee));
+          const newTransaction = {
+            id: txResult.transactionId,
+            blockHeight: txResult.blockHeight,
+            type: 'send',
+            amount: amount.toFixed(2),
+            fee: txResult.fee,
+            from: txResult.from,
+            to: txResult.to,
+            timestamp: txResult.timestamp,
+            status: 'completed',
+            memo: memo || 'Payment for data services'
+          };
+          setTransactionHistory(prev => [newTransaction, ...prev]);
+          setPaymentHistory(prev => [newTransaction, ...prev]);
+          localStorage.setItem('genesisnet-wallet-balance', (walletBalance - (amount + txResult.fee)).toString());
+          localStorage.setItem('genesisnet-transaction-history', JSON.stringify([newTransaction, ...transactionHistory]));
+          localStorage.setItem('genesisnet-payment-history', JSON.stringify([newTransaction, ...paymentHistory]));
+          addLog('wallet', `💸 Sent ${amount.toFixed(2)} ICP to ${recipient.substring(0, 10)}...`, 'info', 'wallet-system');
+          return { success: true, transaction: newTransaction };
+        } else {
+          addLog('wallet', `❌ Transfer failed: ${txResult.error}`, 'error', 'wallet-system');
+          return { success: false, error: txResult.error };
+        }
+      } catch (err) {
+        console.error('ICP Ledger transfer error:', err);
+        addLog('wallet', `❌ Transfer error: ${err.message || err}`, 'error', 'wallet-system');
+        return { success: false, error: err.message || err };
+      }
+    },
+    
+    getWalletInfo: () => {
+      return {
+        address: icpWalletAddress,
+        balance: walletBalance,
+        transactions: transactionHistory.slice(0, 10), // Latest 10 transactions
+        fundingHistory: fundingHistory
+      };
+    },
+    
+  // Connection info
+  icpWalletAddress,
+  transactionHistory,
+  isLoading: isSearching || isNegotiating,
+  error: null,
+  clearError: () => {}
   };
 };
 
