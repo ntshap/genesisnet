@@ -3,10 +3,10 @@
 
 // Import real @dfinity packages - replaced with our browser-compatible versions
 import { idlFactory as ledgerIdlFactory } from './did/ledger.did.js';
+import { HttpAgent, Actor } from '@dfinity/agent';
+import { Principal } from '@dfinity/principal';
 import {
   principalToAccountIdentifier,
-  accountIdToHex,
-  hexToAccountId as stringToAccountIdentifier,
   icpToE8s,
   e8sToIcp,
   ICP_LEDGER_CANISTER_ID,
@@ -15,7 +15,6 @@ import {
 } from './icp-crypto';
 import { identityService } from './identityService';
 
-// ...existing code...
 
 // Default fee in e8s (0.0001 ICP)
 const DEFAULT_TRANSFER_FEE = BigInt(10000);

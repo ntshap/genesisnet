@@ -1,30 +1,44 @@
 {
   "canisters": {
     "data_requester": {
-      "type": "custom",
       "main": "canisters/data_requester/src/main.py",
-      "candid": "canisters/data_requester/canister.did",
-      "build": "bash -c \"venv/bin/pip install -r canisters/data_requester/requirements.txt --target .dfx/local/py_packages && venv/bin/python3 -m uagents.cli build canisters/data_requester/src/main.py\"",
-      "wasm": "canisters/data_requester/target/wasm32-unknown-unknown/release/data_requester.wasm"
+      "type": "custom",
+      "candid": "canisters/data_requester/src/data_requester.did",
+      "wasm": "target/wasm32-unknown-unknown/release/data_requester.wasm",
+      "build": "bash -c \"source canisters/data_requester/venv/bin/activate && python3 -m uagents.cli build canisters/data_requester/src/main.py && deactivate\"",
+      "post_install": "",
+      "candid_gen": ""
     },
     "data_provider": {
-      "type": "custom",
       "main": "canisters/data_provider/src/main.py",
-      "candid": "canisters/data_provider/canister.did",
-      "build": "bash -c \"venv/bin/pip install -r canisters/data_provider/requirements.txt --target .dfx/local/py_packages && venv/bin/python3 -m uagents.cli build canisters/data_provider/src/main.py\"",
-      "wasm": "canisters/data_provider/target/wasm32-unknown-unknown/release/data_provider.wasm"
+      "type": "custom",
+      "candid": "canisters/data_provider/src/data_provider.did",
+      "wasm": "target/wasm32-unknown-unknown/release/data_provider.wasm",
+      "build": "bash -c \"source canisters/data_provider/venv/bin/activate && python3 -m uagents.cli build canisters/data_provider/src/main.py && deactivate\"",
+      "post_install": "",
+      "candid_gen": ""
     },
     "reputation_agent": {
-      "type": "custom",
       "main": "canisters/reputation_agent/src/main.py",
-      "candid": "canisters/reputation_agent/canister.did",
-      "build": "bash -c \"venv/bin/pip install -r canisters/reputation_agent/requirements.txt --target .dfx/local/py_packages && venv/bin/python3 -m uagents.cli build canisters/reputation_agent/src/main.py\"",
-      "wasm": "canisters/reputation_agent/target/wasm32-unknown-unknown/release/reputation_agent.wasm"
+      "type": "custom",
+      "candid": "canisters/reputation_agent/src/reputation_agent.did",
+      "wasm": "target/wasm32-unknown-unknown/release/reputation_agent.wasm",
+      "build": "bash -c \"source canisters/reputation_agent/venv/bin/activate && python3 -m uagents.cli build canisters/reputation_agent/src/main.py && deactivate\"", 
+      "post_install": "",
+      "candid_gen": ""
     }
   },
   "defaults": {
     "build": {
-      "args": ""
+      "args": "",
+      "packtool": ""
+    }
+  },
+  "dfx": "0.14.1",
+  "networks": {
+    "local": {
+      "bind": "127.0.0.1:8000",
+      "type": "ephemeral"
     }
   },
   "version": 1

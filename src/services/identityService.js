@@ -1,7 +1,10 @@
 // Identity Management Service
 // Handles Internet Computer identity creation, storage, and management
 
-// Import our browser-compatible implementations
+
+// Import ICP identity classes
+import { Ed25519KeyIdentity } from '@dfinity/identity';
+
 import { generateIdentity } from './icp-crypto';
 import { principalToAccountIdentifier, accountIdentifierToHex } from './icpUtils';
 import { icpLedgerService } from './icpLedgerService';
@@ -110,8 +113,8 @@ class IdentityService {
       
       // Set up principal and account info
       this.principal = this.identity.getPrincipal();
-      this.accountId = mockPrincipalToAccountIdentifier(this.principal);
-      this.accountIdHex = mockAccountIdToHex(this.accountId);
+      this.accountId = principalToAccountIdentifier(this.principal);
+      this.accountIdHex = accountIdentifierToHex(this.accountId);
       
       console.log('Loaded existing identity with principal:', this.principal.toText());
     } catch (error) {
@@ -134,8 +137,8 @@ class IdentityService {
       
       // Set up principal and account info
       this.principal = this.identity.getPrincipal();
-      this.accountId = mockPrincipalToAccountIdentifier(this.principal);
-      this.accountIdHex = mockAccountIdToHex(this.accountId);
+      this.accountId = principalToAccountIdentifier(this.principal);
+      this.accountIdHex = accountIdentifierToHex(this.accountId);
       
       // Store the identity in localStorage
       const identityData = {

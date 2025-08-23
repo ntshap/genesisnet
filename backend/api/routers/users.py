@@ -2,9 +2,9 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from typing import List, Optional
 
-from .. import models, schemas
-from ..database import get_db
-from ..auth import get_current_user, create_access_token
+import models, schemas
+from database import get_db
+from auth import get_current_user, create_access_token
 
 router = APIRouter(
     prefix="/users",
@@ -12,7 +12,7 @@ router = APIRouter(
     responses={404: {"description": "Not found"}}
 )
 
-@router.post("/register", response_model=schemas.User)
+@router.post("/register", response_model=schemas.UserResponse)
 def create_user(user: schemas.UserCreate, db: Session = Depends(get_db)):
     """Register a new user"""
     # Check if user with the email already exists
@@ -54,13 +54,13 @@ def login(credentials: schemas.UserLogin, db: Session = Depends(get_db)):
     
     return {"access_token": access_token, "token_type": "bearer"}
 
-@router.get("/me", response_model=schemas.User)
+@router.get("/me", response_model=schemas.UserResponse)
 def read_users_me(current_user: models.User = Depends(get_current_user)):
     """Get current user profile"""
     return current_user
 
-@router.put("/me", response_model=schemas.User)
-def update_user(user_update: schemas.UserUpdate, 
+@router.put("/me", response_model=schemas.UserResponse)
+def update_user(user_update: schemas.UserCreate, 
                 current_user: models.User = Depends(get_current_user),
                 db: Session = Depends(get_db)):
     """Update current user profile"""
@@ -78,7 +78,7 @@ def update_user(user_update: schemas.UserUpdate,
     db.refresh(current_user)
     return current_user
 
-@router.get("/", response_model=List[schemas.User])
+@router.get("/", response_model=List[schemas.UserResponse])
 def read_users(skip: int = 0, limit: int = 100, db: Session = Depends(get_db),
               current_user: models.User = Depends(get_current_user)):
     """Get list of users (admin only)"""
@@ -92,7 +92,7 @@ def read_users(skip: int = 0, limit: int = 100, db: Session = Depends(get_db),
     users = db.query(models.User).offset(skip).limit(limit).all()
     return users
 
-@router.get("/{user_id}", response_model=schemas.User)
+@router.get("/{user_id}", response_model=schemas.UserResponse)
 def read_user(user_id: int, db: Session = Depends(get_db),
              current_user: models.User = Depends(get_current_user)):
     """Get user by ID (admin only or own profile)"""

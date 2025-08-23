@@ -1,13 +1,13 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session
-from typing import List, Optional, Dict, Any
+from typing import List, Optional, Dict, Any, Dict, Any
 import json
 from datetime import datetime, timedelta
 
-from .. import models, schemas
-from ..database import get_db
-from ..auth import get_current_user
-from ..network import fetch_network_status, get_canister_status
+import models, schemas
+from database import get_db
+from auth import get_current_user
+from network import fetch_network_status, get_canister_status
 
 router = APIRouter(
     prefix="/network",
@@ -15,7 +15,7 @@ router = APIRouter(
     responses={404: {"description": "Not found"}}
 )
 
-@router.get("/visualization", response_model=schemas.NetworkVisualizationResponse)
+@router.get("/visualization", response_model=schemas.NetworkVisualizationData)
 def get_network_visualization(current_user: models.User = Depends(get_current_user),
                              db: Session = Depends(get_db)):
     """
@@ -144,9 +144,9 @@ def get_network_metrics(current_user: models.User = Depends(get_current_user)):
             "message": f"Failed to retrieve metrics: {str(e)}"
         }
 
-@router.post("/search", response_model=schemas.SearchResponse)
+@router.post("/search", response_model=Dict[str, Any])
 def search_data_providers(
-    search_criteria: schemas.SearchCriteria,
+    search_criteria: Dict[str, Any],
     current_user: models.User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
@@ -217,7 +217,7 @@ def search_data_providers(
             "message": f"Search failed: {str(e)}"
         }
 
-@router.get("/status", response_model=schemas.NetworkStatusResponse)
+@router.get("/status", response_model=Dict[str, Any])
 def get_network_status(current_user: models.User = Depends(get_current_user)):
     """
     Get the current status of the network and connected canisters
@@ -260,7 +260,7 @@ def get_network_status(current_user: models.User = Depends(get_current_user)):
 
 @router.post("/negotiate", response_model=schemas.NegotiationResponse)
 def negotiate_with_provider(
-    negotiation: schemas.NegotiationRequest,
+    negotiation: Dict[str, Any],
     current_user: models.User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):

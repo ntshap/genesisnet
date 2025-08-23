@@ -1,0 +1,30 @@
+{
+  "replica_rev": "b3b00ba59c366384e3e0cd53a69457e9053ec987",
+  "type": "replica",
+  "config": {
+    "http_handler": {
+      "port": null,
+      "write_port_to": "/home/dministrator/genesisnet-main/1genesisnet-main/backend/.dfx/network/local/replica-configuration/replica-1.port"
+    },
+    "state_manager": {
+      "state_root": "/home/dministrator/genesisnet-main/1genesisnet-main/backend/.dfx/network/local/state/replicated_state"
+    },
+    "crypto": {
+      "crypto_root": "/home/dministrator/genesisnet-main/1genesisnet-main/backend/.dfx/network/local/state/crypto_store"
+    },
+    "artifact_pool": {
+      "consensus_pool_path": "/home/dministrator/genesisnet-main/1genesisnet-main/backend/.dfx/network/local/state/consensus_pool"
+    },
+    "subnet_type": "application",
+    "btc_adapter": {
+      "enabled": false,
+      "socket_path": null
+    },
+    "canister_http_adapter": {
+      "enabled": true,
+      "socket_path": "/tmp/ic-https-outcalls-adapter-socket.190123.1755966135"
+    },
+    "log_level": "error",
+    "artificial_delay": 600
+  }
+}

@@ -1,12 +1,12 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
-from typing import List, Optional
+from typing import List, Optional, Dict, Any
 import json
 from datetime import datetime
 
-from .. import models, schemas
-from ..database import get_db
-from ..auth import get_current_user
+import models, schemas
+from database import get_db
+from auth import get_current_user
 
 router = APIRouter(
     prefix="/transactions",
@@ -14,7 +14,7 @@ router = APIRouter(
     responses={404: {"description": "Not found"}}
 )
 
-@router.get("/", response_model=List[schemas.Transaction])
+@router.get("/", response_model=List[schemas.TransactionResponse])
 def get_transactions(
     skip: int = 0, 
     limit: int = 100, 
@@ -35,7 +35,7 @@ def get_transactions(
     transactions = query.order_by(models.Transaction.created_at.desc()).offset(skip).limit(limit).all()
     return transactions
 
-@router.get("/{transaction_id}", response_model=schemas.Transaction)
+@router.get("/{transaction_id}", response_model=schemas.TransactionResponse)
 def get_transaction(
     transaction_id: int,
     current_user: models.User = Depends(get_current_user),
@@ -57,7 +57,7 @@ def get_transaction(
     
     return transaction
 
-@router.post("/", response_model=schemas.Transaction)
+@router.post("/", response_model=schemas.TransactionResponse)
 def create_transaction(
     transaction_create: schemas.TransactionCreate,
     current_user: models.User = Depends(get_current_user),
@@ -140,7 +140,7 @@ def create_transaction(
     
     return transaction
 
-@router.get("/{transaction_id}/status", response_model=schemas.TransactionStatus)
+@router.get("/{transaction_id}/status", response_model=Dict[str, Any])
 def get_transaction_status(
     transaction_id: int,
     current_user: models.User = Depends(get_current_user),
@@ -169,7 +169,7 @@ def get_transaction_status(
         "updated_at": transaction.updated_at or transaction.created_at
     }
 
-@router.post("/{transaction_id}/cancel", response_model=schemas.Transaction)
+@router.post("/{transaction_id}/cancel", response_model=schemas.TransactionResponse)
 def cancel_transaction(
     transaction_id: int,
     current_user: models.User = Depends(get_current_user),
@@ -213,7 +213,7 @@ def cancel_transaction(
     
     return transaction
 
-@router.get("/summary", response_model=schemas.TransactionSummary)
+@router.get("/summary", response_model=Dict[str, Any])
 def get_transaction_summary(
     current_user: models.User = Depends(get_current_user),
     db: Session = Depends(get_db)
@@ -299,7 +299,7 @@ def request_data(
         "message": "Data request created successfully"
     }
 
-@router.get("/data-deliveries", response_model=List[schemas.DataDelivery])
+@router.get("/data-deliveries", response_model=List[Dict[str, Any]])
 def get_data_deliveries(
     status: Optional[str] = None,
     skip: int = 0,
