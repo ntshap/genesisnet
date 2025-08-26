@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import Joyride from 'react-joyride';
 import { useAuth } from './context/AuthContext.jsx';
 import { useNotifications } from './context/NotificationContext.jsx';
@@ -37,14 +37,14 @@ import {
   HelpCircle,
   Bell
 } from 'lucide-react';
-import ControlPanel from './components/ControlPanel/ControlPanel_neubrutalism';
+import ControlPanel from './components/ControlPanel';
 
 import RealtimeLog from './components/RealtimeLog/RealtimeLog_neubrutalism';
 import MetricsDisplay from './components/MetricsDisplay/MetricsDisplay_neubrutalism';
 import NetworkVisualization from './components/NetworkVisualization/NetworkVisualization_neubrutalism';
 import genesisLogo from './assets/genesisnet-logo.png';
 import DemoControlPanel from './components/DemoControlPanel';
-import useInteractiveDemo from './hooks/useInteractiveDemo';
+import useRealData from './hooks/useRealData';
 import { DEMO_CONFIG } from './utils/demoConfig';
 import AccountSettingsPanel from './components/AccountSettingsPanel.jsx';
 import SettingsIcon from './components/shared/SettingsIcon.jsx';
@@ -163,10 +163,10 @@ function Dashboard({ onBackToLanding }) {
     selectedProvider = null,
     negotiationStatus = null,
     lastUpdate,
-    startSearch,
-    negotiate,
+    searchData: startSearch,
+    negotiateData: negotiate,
     downloadData,
-    refresh,
+    refreshData: refresh,
     addLog,
     clearLogs,
     addFunds,
@@ -175,12 +175,33 @@ function Dashboard({ onBackToLanding }) {
     icpWalletAddress,
     transactionHistory,
     isConnectedToICP = false,
-    isMockMode = true,
-    connectionStatus = 'connecting',
+    connectionStatus = 'connected',
     isLoading = false,
     error = null,
     clearError
-  } = useInteractiveDemo() || {};
+  } = useRealData() || {};
+
+  // Refs to help auto-scroll to results after a search
+  const leftSidebarRef = useRef(null);
+  const resultsRef = useRef(null);
+
+  // After search results arrive, scroll them into view within the sidebar
+  useEffect(() => {
+    try {
+      if (searchResults && searchResults.length > 0) {
+        // Prefer scrolling the specific results section if available
+        if (resultsRef.current) {
+          resultsRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        } else if (leftSidebarRef.current) {
+          // Fallback: scroll the sidebar to the bottom where results are
+          leftSidebarRef.current.scrollTo({ top: leftSidebarRef.current.scrollHeight, behavior: 'smooth' });
+        }
+      }
+    } catch (e) {
+      // Non-blocking UX enhancement; ignore any scroll errors
+      console.warn('Scroll to results failed:', e);
+    }
+  }, [searchResults]);
 
   const handleInputChange = useCallback((e) => {
     const { name, value } = e.target;
@@ -190,41 +211,84 @@ function Dashboard({ onBackToLanding }) {
     }));
   }, []);
 
-  const handleStartAgent = useCallback(async () => {
+  const handleStartAgent = useCallback(async (criteria = searchCriteria) => {
     try {
+      console.log('=== DASHBOARD SEARCH DEBUG ===');
+      console.log('Dashboard: handleStartAgent called with criteria:', criteria);
+      console.log('Dashboard: searchCriteria state:', searchCriteria);
+      console.log('Dashboard: startSearch function type:', typeof startSearch);
+      console.log('Dashboard: startSearch function exists:', !!startSearch);
+      console.log('Dashboard: All useRealData values:', { 
+        startSearch: typeof startSearch, 
+        searchResults: searchResults?.length, 
+        loading, 
+        error,
+        agentStatus 
+      });
+      console.log('=== DASHBOARD DEBUG DETAIL ===');
+      
       if (startSearch && typeof startSearch === 'function') {
+        console.log('Dashboard: startSearch function confirmed available');
+        
         // Add notification for agent starting
         addNotification({
           title: 'Agent Activated',
-          message: `Searching for ${searchCriteria.dataType} data in ${searchCriteria.location}`,
+          message: `Searching for ${criteria.dataType} data in ${criteria.location}`,
           severity: 'info',
           category: 'agent',
           type: 'persistent'
         });
         
-        await startSearch(searchCriteria);
+        console.log('Dashboard: About to call startSearch with criteria:', criteria);
+        console.log('Dashboard: Calling startSearch now...');
         
-        // Add notification for agent success
+        const results = await startSearch(criteria);
+        console.log('Dashboard: Search completed, results received:', results);
+        console.log('Dashboard: Results length:', results?.length);
+        console.log('Dashboard: Results type:', typeof results);
+
+        // Notify outcome (success when >0, warning when 0) via toast (no UI layout change)
+        const found = results?.length || 0;
         addNotification({
-          title: 'Search Complete',
-          message: 'Data search completed successfully',
-          severity: 'success',
+          title: found > 0 ? 'Search Complete' : 'No Providers Found',
+          message: found > 0
+            ? `Found ${found} data provider${found > 1 ? 's' : ''}`
+            : `No providers match ${criteria.dataType} in ${criteria.location}. Try adjusting filters.`,
+          severity: found > 0 ? 'success' : 'warning',
           category: 'agent',
           type: 'toast',
-          duration: 5000
+          duration: 6000
         });
+        
+        return results;
+      } else {
+        console.error('Dashboard: startSearch function not available!');
+        console.error('Dashboard: startSearch value:', startSearch);
+        console.error('Dashboard: typeof startSearch:', typeof startSearch);
+        console.log('Dashboard: useRealData hook result details:', { 
+          startSearch,
+          searchResults,
+          loading,
+          error,
+          agentStatus
+        });
+        throw new Error('Search function not available - startSearch is: ' + typeof startSearch);
       }
     } catch (error) {
-      console.error('Failed to start agent:', error);
+      console.error('Dashboard: Failed to start agent:', error);
+      console.error('Dashboard: Full error details:', error.message, error.stack);
       
       // Add notification for agent error
       addNotification({
         title: 'Agent Error',
-        message: 'Failed to initialize data search. Please try again.',
+        message: error.message || 'Failed to initialize data search. Please try again.',
         severity: 'error',
         category: 'agent',
         type: 'persistent'
       });
+      
+      // Re-throw untuk debugging
+      throw error;
     }
   }, [startSearch, searchCriteria, addNotification]);
 
@@ -497,8 +561,7 @@ function Dashboard({ onBackToLanding }) {
   
 
   return (
-  <div className="min-h-screen bg-yellow-50 text-black relative flex flex-col">
-      {/* Guided tour overlay */}
+    <div className="min-h-screen bg-yellow-50 text-black relative flex flex-col">
       <Joyride
         steps={validTourSteps}
         run={runTour}
@@ -784,31 +847,6 @@ function Dashboard({ onBackToLanding }) {
           {/* Right: User, Wallet, and Status Controls */}
           <div className="flex flex-wrap items-center gap-2 md:space-x-3">
             <NotificationCenter />
-            <button
-              onClick={() => {
-                // Test notification with random types
-                const types = ['info', 'success', 'warning', 'error'];
-                const categories = ['system', 'transaction', 'network', 'agent', 'download'];
-                const severity = types[Math.floor(Math.random() * types.length)];
-                const category = categories[Math.floor(Math.random() * categories.length)];
-                
-                addNotification({
-                  title: `Test ${severity.charAt(0).toUpperCase() + severity.slice(1)} Notification`,
-                  message: `This is a test ${category} notification with ${severity} severity`,
-                  severity: severity,
-                  category: category,
-                  type: 'persistent',
-                  action: {
-                    label: 'Dismiss',
-                    onClick: () => console.log('Test notification dismissed')
-                  }
-                });
-              }}
-              className="p-2 rounded-lg bg-purple-200 hover:bg-purple-300 border-2 border-black"
-              aria-label="Test notification"
-            >
-              <Bell className="w-5 h-5" />
-            </button>
             <SettingsIcon onClick={() => setShowSettingsPanel(true)} />
             {/* Landing button removed. Navigation now on logo. */}
             <button
@@ -829,13 +867,13 @@ function Dashboard({ onBackToLanding }) {
                 aria-label="Show wallet balance"
               >
                 <ShoppingCart size={18} className="mr-1" />
-                <span className="font-bold text-sm">{balance ? balance.toFixed(2) : "0.00"} ICP</span>
+                <span className="font-bold text-sm">{balance ? parseFloat(balance).toFixed(2) : "0.00"} ICP</span>
               </button>
             </div>
             <div className="flex items-center space-x-2 px-3 py-1.5 rounded-lg bg-lime-300 border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
               <div className={'w-2 h-2 rounded-full ' + 
                 (isConnectedToICP ? 'bg-green-500 border border-black' :
-                isMockMode ? 'bg-yellow-500 border border-black' : 'bg-red-500 border border-black')
+                'bg-red-500 border border-black')
               }></div>
               <span className="text-xs text-black font-black">{agentStatus}</span>
             </div>
@@ -850,36 +888,81 @@ function Dashboard({ onBackToLanding }) {
             <button
               className="absolute top-3 right-3 px-2 py-1 bg-red-300 text-black font-black border-2 border-black rounded shadow hover:bg-red-400"
               onClick={() => setShowSettingsPanel(false)}
-            >✕</button>
+            ></button>
             <AccountSettingsPanel settings={userSettings} onChange={setUserSettings} />
           </div>
         </div>
       )}
       <main className="flex h-[calc(100vh-80px)] pt-2">
         {/* Left Sidebar - Control Panel & Navigation */}
-        <aside className="w-80 bg-white border-r-4 border-black shadow-[8px_0px_0px_0px_rgba(0,0,0,1)] overflow-y-auto max-h-[calc(100vh-100px)] scrollbar-neubrutalism mt-2 ml-2 rounded-tl-lg">
-          <div className="p-4 space-y-4">
+  <aside ref={leftSidebarRef} className="w-80 xl:w-96 lg:w-80 md:w-72 sm:w-64 bg-white border-r-4 border-black shadow-[8px_0px_0px_0px_rgba(0,0,0,1)] overflow-y-auto max-h-[calc(100vh-100px)] scrollbar-neubrutalism mt-2 ml-2 rounded-tl-lg">
+          <div className="p-3 md:p-4 space-y-3 md:space-y-4">
             {/* Network Control Header */}
-            <div className="border-b-4 border-black pb-3">
+            <div className="border-b-4 border-black pb-4">
               <h2 className="text-sm font-black text-black uppercase tracking-wide">Network Control</h2>
               <p className="text-xs text-purple-600 mt-1 font-bold">System parameters and controls</p>
             </div>
-            {/* Quick Stats Grid */}
-            <div className="grid grid-cols-2 gap-3">
-              <div className="bg-blue-300 border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] rounded-lg p-3">
-                <div className="text-lg font-black text-black">{metrics.activeProviders || 24}</div>
-                <div className="text-xs text-black font-bold">Active Nodes</div>
-              </div>
-              <div className="bg-green-300 border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] rounded-lg p-3">
-                <div className="text-lg font-black text-black">{metrics.totalTransactions || 156}</div>
-                <div className="text-xs text-black font-bold">Connections</div>
+
+            {/* Control Panel Component - Moved to top */}
+            <div data-tour="control-panel" className="bg-yellow-100 border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] rounded-lg">
+              <div className="p-3">
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="text-lg font-black text-black uppercase tracking-wide flex items-center">
+                    🛠️ Control Panel
+                  </h3>
+                </div>
+                <ControlPanel
+                  searchCriteria={searchCriteria}
+                  setSearchCriteria={setSearchCriteria}
+                  onSearch={handleStartAgent}
+                />
               </div>
             </div>
-            {/* Live Preview panel removed as requested */}
+
+            {/* System Parameters */}
+            <div className="bg-pink-100 border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] rounded-lg p-4">
+              <h3 className="text-sm font-black text-black uppercase tracking-wide mb-3">System Parameters</h3>
+              
+              <div className="space-y-2">
+                <div className="flex items-center justify-between p-3 bg-pink-200 border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] rounded">
+                  <span className="text-xs text-black font-bold">Network Load</span>
+                  <span className="text-xs font-black text-black">73%</span>
+                </div>
+                <div className="flex items-center justify-between p-3 bg-pink-200 border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] rounded">
+                  <span className="text-xs text-black font-bold">Latency</span>
+                  <span className="text-xs font-black text-black">{metrics.networkLatency || 42}ms</span>
+                </div>
+                <div className="flex items-center justify-between p-3 bg-pink-200 border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] rounded">
+                  <span className="text-xs text-black font-bold">Throughput</span>
+                  <span className="text-xs font-black text-black">2.4 GB/s</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Network Actions */}
+            <div className="bg-blue-100 border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] rounded-lg p-4">
+              <h3 className="text-sm font-black text-black uppercase tracking-wide mb-3">Network Actions</h3>
+              <div className="space-y-3">
+                <button
+                  onClick={handleNegotiate}
+                  className="w-full px-4 py-3 bg-cyan-400 border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] rounded-lg text-sm font-black hover:translate-x-1 hover:translate-y-1 hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all"
+                >
+                  Initialize Network
+                </button>
+                <button
+                  onClick={handleRefresh}
+                  className="w-full px-4 py-3 bg-lime-300 border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] rounded-lg text-sm font-black hover:translate-x-1 hover:translate-y-1 hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all"
+                >
+                  Refresh Data
+                </button>
+              </div>
+            </div>
+
+            {/* Search Results */}
             {searchResults.length > 0 && (
-              <div className="bg-yellow-300 border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] rounded-lg p-4">
+              <div ref={resultsRef} className="bg-yellow-300 border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] rounded-lg p-4">
                 <h3 className="text-sm font-black text-black uppercase tracking-wide mb-3">Search Results ({searchResults.length})</h3>
-                <div className="space-y-3 max-h-48 overflow-y-auto">
+                <div className="space-y-3 max-h-64 overflow-y-auto scrollbar-neubrutalism">
                   {searchResults.map((provider, index) => (
                     <div key={provider.id} className="bg-white border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] rounded-lg p-3">
                       {/* Provider Header */}
@@ -919,7 +1002,7 @@ function Dashboard({ onBackToLanding }) {
             {/* Negotiation Status */}
             {negotiationStatus && selectedProvider && (
               <div className="bg-purple-200 border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] rounded-lg p-4">
-                <h3 className="text-sm font-black text-black uppercase tracking-wide mb-2">
+                <h3 className="text-sm font-black text-black uppercase tracking-wide mb-3">
                   Negotiating with {selectedProvider.name}
                 </h3>
                 <div className="flex items-center space-x-2">
@@ -944,6 +1027,7 @@ function Dashboard({ onBackToLanding }) {
                 </div>
               </div>
             )}
+
             {/* Data Deliveries Panel */}
             {(dataDeliveries.length > 0 || completedDeliveries.length > 0) && (
               <div className="bg-cyan-200 border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] rounded-lg p-4">
@@ -951,64 +1035,68 @@ function Dashboard({ onBackToLanding }) {
                   📦 Data Deliveries ({dataDeliveries.length + completedDeliveries.length})
                 </h3>
                 
-                {/* Active Deliveries */}
-                {dataDeliveries.map((delivery) => (
-                  <div key={delivery.id} className="mb-3 p-3 bg-white border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] rounded">
-                    <div className="flex items-center justify-between mb-2">
-                      <div className="flex items-center space-x-2">
-                        <span className="text-xs font-black">{delivery.provider}</span>
-                        <span className="px-1 py-0.5 bg-blue-300 border border-black rounded text-xs font-black">
-                          {delivery.dataType?.toUpperCase()}
-                        </span>
+                <div className="space-y-3 max-h-64 overflow-y-auto scrollbar-neubrutalism">
+                  {/* Active Deliveries */}
+                  {dataDeliveries.map((delivery) => (
+                    <div key={delivery.id} className="p-3 bg-white border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] rounded">
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center space-x-2">
+                          <span className="text-xs font-black">{delivery.provider}</span>
+                          <span className="px-2 py-1 bg-blue-300 border border-black rounded text-xs font-black">
+                            {delivery.dataType?.toUpperCase()}
+                          </span>
+                        </div>
+                        <span className="text-xs font-bold text-gray-600">{delivery.package.size}</span>
                       </div>
-                      <span className="text-xs font-bold text-gray-600">{delivery.package.size}</span>
-                    </div>
-                    
-                    <div className="mb-2">
-                      <div className="flex items-center justify-between text-xs mb-1">
-                        <span className="font-bold capitalize">{delivery.status.replace('_', ' ')}</span>
-                        <span className="font-black">{delivery.progress}%</span>
+                      
+                      <div className="mb-2">
+                        <div className="flex items-center justify-between text-xs mb-1">
+                          <span className="font-bold capitalize">{delivery.status.replace('_', ' ')}</span>
+                          <span className="font-black">{delivery.progress}%</span>
+                        </div>
+                        <div className="w-full bg-gray-200 border border-black rounded-full h-2">
+                          <div
+                            className="bg-cyan-500 border-r border-black h-full rounded-full transition-all duration-300"
+                            style={{ width: delivery.progress + '%' }}
+                          ></div>
+                        </div>
                       </div>
-                      <div className="w-full bg-gray-200 border border-black rounded-full h-2">
-                        <div
-                          className="bg-cyan-500 border-r border-black h-full rounded-full transition-all duration-300"
-                          style={{ width: delivery.progress + '%' }}
-                        ></div>
+                      
+                      <div className="text-xs text-gray-600">
+                        📊 {delivery.package.records} records • 📁 {delivery.package.files} files
                       </div>
                     </div>
-                    
-                    <div className="text-xs text-gray-600">
-                      📊 {delivery.package.records} records • 📁 {delivery.package.files} files
-                    </div>
-                  </div>
-                ))}
-                {/* Completed Deliveries - Ready for Download */}
-                {completedDeliveries.map((delivery) => (
-                  <div key={delivery.id} className="mb-3 p-3 bg-green-100 border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] rounded">
-                    <div className="flex items-center justify-between mb-2">
-                      <div className="flex items-center space-x-2">
-                        <span className="text-xs font-black">{delivery.provider}</span>
-                        <span className="px-1 py-0.5 bg-green-300 border border-black rounded text-xs font-black">
-                          READY
-                        </span>
+                  ))}
+
+                  {/* Completed Deliveries - Ready for Download */}
+                  {completedDeliveries.map((delivery) => (
+                    <div key={delivery.id} className="p-3 bg-green-100 border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] rounded">
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center space-x-2">
+                          <span className="text-xs font-black">{delivery.provider}</span>
+                          <span className="px-2 py-1 bg-green-300 border border-black rounded text-xs font-black">
+                            READY
+                          </span>
+                        </div>
+                        <span className="text-xs font-bold text-gray-600">{delivery.package.size}</span>
                       </div>
-                      <span className="text-xs font-bold text-gray-600">{delivery.package.size}</span>
+                      
+                      <div className="mb-3 text-xs text-gray-600">
+                        📊 {delivery.package.records} records • 📁 {delivery.package.files} files
+                      </div>
+                      
+                      <button
+                        onClick={() => downloadData && downloadData(delivery)}
+                        className="w-full px-3 py-2 bg-green-400 border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] rounded text-xs text-black font-black hover:translate-x-1 hover:translate-y-1 hover:shadow-[1px_1px_0px_0px_rgba(0,0,0,1)] transition-all"
+                      >
+                        🔽 Download Data Package
+                      </button>
                     </div>
-                    
-                    <div className="mb-2 text-xs text-gray-600">
-                      📊 {delivery.package.records} records • 📁 {delivery.package.files} files
-                    </div>
-                    
-                    <button
-                      onClick={() => downloadData && downloadData(delivery)}
-                      className="w-full px-3 py-2 bg-green-400 border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] rounded text-xs text-black font-black hover:translate-x-1 hover:translate-y-1 hover:shadow-[1px_1px_0px_0px_rgba(0,0,0,1)] transition-all"
-                    >
-                      🔽 Download Data Package
-                    </button>
-                  </div>
-                ))}
+                  ))}
+                </div>
               </div>
             )}
+
             {/* Active Downloads Panel */}
             {activeDownloads.length > 0 && (
               <div className="bg-green-200 border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] rounded-lg p-4">
@@ -1016,88 +1104,43 @@ function Dashboard({ onBackToLanding }) {
                   🔽 Active Downloads ({activeDownloads.length})
                 </h3>
                 
-                {activeDownloads.map((download) => (
-                  <div key={download.id} className="mb-3 p-3 bg-white border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] rounded">
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-xs font-black truncate">{download.fileName}</span>
-                      <span className="text-xs font-bold text-green-600">{download.speed}</span>
-                    </div>
-                    
-                    <div className="mb-2">
-                      <div className="flex items-center justify-between text-xs mb-1">
-                        <span className="font-bold capitalize">{download.status}</span>
-                        <span className="font-black">{download.progress}%</span>
+                <div className="space-y-3 max-h-48 overflow-y-auto scrollbar-neubrutalism">
+                  {activeDownloads.map((download) => (
+                    <div key={download.id} className="p-3 bg-white border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] rounded">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-xs font-black truncate">{download.fileName}</span>
+                        <span className="text-xs font-bold text-green-600">{download.speed}</span>
                       </div>
-                      <div className="w-full bg-gray-200 border border-black rounded-full h-2">
-                        <div
-                          className="bg-green-500 border-r border-black h-full rounded-full transition-all duration-300"
-                          style={{ width: download.progress + '%' }}
-                        ></div>
+                      
+                      <div className="mb-2">
+                        <div className="flex items-center justify-between text-xs mb-1">
+                          <span className="font-bold capitalize">{download.status}</span>
+                          <span className="font-black">{download.progress}%</span>
+                        </div>
+                        <div className="w-full bg-gray-200 border border-black rounded-full h-2">
+                          <div
+                            className="bg-green-500 border-r border-black h-full rounded-full transition-all duration-300"
+                            style={{ width: download.progress + '%' }}
+                          ></div>
+                        </div>
+                      </div>
+                      
+                      <div className="text-xs text-gray-600">
+                        📦 {download.size}
                       </div>
                     </div>
-                    
-                    <div className="text-xs text-gray-600">
-                      📦 {download.size}
-                    </div>
-                  </div>
-                ))}
+                  ))}
+                </div>
               </div>
             )}
-            {/* Control Panel Component */}
-            <div data-tour="control-panel" className="bg-yellow-100 border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] rounded-lg p-3">
-              <ControlPanel
-                searchCriteria={searchCriteria}
-                onInputChange={handleInputChange}
-                onStartAgent={handleStartAgent}
-                onRefresh={handleRefresh}
-                agentStatus={agentStatus}
-                isLoading={isLoading}
-                connectionStatus={connectionStatus}
-                error={error}
-                isSearching={isSearching}
-              />
-            </div>
-            {/* System Parameters */}
-            <div className="space-y-3">
-              <h3 className="text-xs font-black text-black uppercase tracking-wide">System Parameters</h3>
-              
-              <div className="space-y-2">
-                <div className="flex items-center justify-between p-2 bg-pink-200 border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] rounded">
-                  <span className="text-xs text-black font-bold">Network Load</span>
-                  <span className="text-xs font-black text-black">73%</span>
-                </div>
-                <div className="flex items-center justify-between p-2 bg-pink-200 border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] rounded">
-                  <span className="text-xs text-black font-bold">Latency</span>
-                  <span className="text-xs font-black text-black">{metrics.networkLatency || 42}ms</span>
-                </div>
-                <div className="flex items-center justify-between p-2 bg-pink-200 border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] rounded">
-                  <span className="text-xs text-black font-bold">Throughput</span>
-                  <span className="text-xs font-black text-black">2.4 GB/s</span>
-                </div>
-              </div>
-            </div>
-            {/* Action Buttons */}
-            <div className="space-y-2 network-actions">
-              <button
-                onClick={handleNegotiate}
-                className="w-full px-3 py-2 bg-cyan-400 border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] rounded-lg text-sm font-black hover:translate-x-1 hover:translate-y-1 hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all"
-              >
-                Initialize Network
-              </button>
-              <button
-                onClick={handleRefresh}
-                className="w-full px-3 py-2 bg-lime-300 border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] rounded-lg text-sm font-black hover:translate-x-1 hover:translate-y-1 hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all"
-              >
-                Refresh Data
-              </button>
-            </div>
+
             {/* Network Nodes Dropdown */}
-            <div className="space-y-3">
+            <div className="bg-orange-100 border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] rounded-lg">
               <div 
-                className="flex items-center justify-between p-2 bg-blue-200 border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] rounded cursor-pointer hover:bg-blue-300 transition-colors"
+                className="flex items-center justify-between p-4 cursor-pointer hover:bg-orange-200 transition-colors rounded-t-lg"
                 onClick={toggleNetworkNodesDropdown}
               >
-                <h3 className="text-xs font-black text-black uppercase tracking-wide">Network Nodes</h3>
+                <h3 className="text-sm font-black text-black uppercase tracking-wide">Network Nodes</h3>
                 <div className={'transform transition-transform duration-200 ' + (isNetworkNodesDropdownOpen ? "rotate-180" : "")}>
                   <svg className="w-4 h-4 text-black" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
@@ -1105,33 +1148,36 @@ function Dashboard({ onBackToLanding }) {
                 </div>
               </div>
               {isNetworkNodesDropdownOpen && (
-                <div className="space-y-2 max-h-60 overflow-y-auto">
-                  {[
-                    { id: "CORE-01", status: "online", load: "67%" },
-                    { id: "CORE-02", status: "online", load: "45%" },
-                    { id: "EDGE-A1", status: "online", load: "89%" },
-                    { id: "EDGE-B2", status: "maintenance", load: "0%" },
-                    { id: "RELAY-X1", status: "online", load: "23%" },
-                    { id: "CORE-03", status: "online", load: "78%" },
-                    { id: "EDGE-C3", status: "online", load: "56%" },
-                    { id: "RELAY-Y2", status: "online", load: "34%" },
-                    { id: "EDGE-D4", status: "offline", load: "0%" },
-                    { id: "CORE-04", status: "online", load: "91%" }
-                  ].map((node, idx) => (
-                    <div key={node.id} className="flex items-center justify-between p-2 bg-orange-200 border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] rounded">
-                      <div className="flex items-center space-x-2">
-                        <div className={"w-2 h-2 rounded-full border border-black " + 
-                          (node.status === "online" ? "bg-green-500" :
-                          node.status === "maintenance" ? "bg-yellow-500" : "bg-red-500")
-                        }></div>
-                        <span className="text-xs text-black font-black">{node.id}</span>
+                <div className="p-4 pt-0">
+                  <div className="space-y-2 max-h-60 overflow-y-auto scrollbar-neubrutalism">
+                    {[
+                      { id: "CORE-01", status: "online", load: "67%" },
+                      { id: "CORE-02", status: "online", load: "45%" },
+                      { id: "EDGE-A1", status: "online", load: "89%" },
+                      { id: "EDGE-B2", status: "maintenance", load: "0%" },
+                      { id: "RELAY-X1", status: "online", load: "23%" },
+                      { id: "CORE-03", status: "online", load: "78%" },
+                      { id: "EDGE-C3", status: "online", load: "56%" },
+                      { id: "RELAY-Y2", status: "online", load: "34%" },
+                      { id: "EDGE-D4", status: "offline", load: "0%" },
+                      { id: "CORE-04", status: "online", load: "91%" }
+                    ].map((node, idx) => (
+                      <div key={node.id} className="flex items-center justify-between p-3 bg-orange-200 border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] rounded">
+                        <div className="flex items-center space-x-2">
+                          <div className={"w-2 h-2 rounded-full border border-black " + 
+                            (node.status === "online" ? "bg-green-500" :
+                            node.status === "maintenance" ? "bg-yellow-500" : "bg-red-500")
+                          }></div>
+                          <span className="text-xs text-black font-black">{node.id}</span>
+                        </div>
+                        <span className="text-xs text-black font-black">{node.load}</span>
                       </div>
-                      <span className="text-xs text-black font-black">{node.load}</span>
-                    </div>
-                  ))}
+                    ))}
+                  </div>
                 </div>
               )}
             </div>
+
             {/* Additional Configuration Panel */}
             <div className="space-y-3">
               <h3 className="text-xs font-black text-black uppercase tracking-wide">Advanced Settings</h3>
@@ -1150,6 +1196,7 @@ function Dashboard({ onBackToLanding }) {
             </div>
           </div>
         </aside>
+
         {/* Center - Content based on Active Tab */}
         <section className="flex-1 bg-yellow-100 relative">
           <div className="h-full p-4 pt-2">
@@ -1573,6 +1620,7 @@ function Dashboard({ onBackToLanding }) {
           </div>
         </aside>
       </main>
+
       {/* Demo Controls Overlay */}
       {showDemoControls && DEMO_CONFIG.DEMO_MODE && (
         <DemoControlPanel
@@ -1581,17 +1629,18 @@ function Dashboard({ onBackToLanding }) {
           currentScenario={currentScenario}
         />
       )}
+
       {/* Footer Status Bar */}
-      <footer className="bg-white border-t-4 border-black shadow-[0px_-8px_0px_0px_rgba(0,0,0,1)] px-4 py-2">
-          <div className="flex justify-between items-center text-xs font-black">
-            {/* STATUS and UPDATED display removed as per user request */}
-            {DEMO_CONFIG.DEMO_MODE && (
-              <div className="flex items-center space-x-2">
-                <span className="text-purple-600">DEMO MODE ACTIVE</span>
-              </div>
-            )}
-          </div>
+      <footer className="border-t-4 border-black bg-yellow-100 p-2">
+        <div className="flex items-center space-x-2">
+          {DEMO_CONFIG.DEMO_MODE && (
+            <div className="flex items-center space-x-2">
+              <span className="text-purple-600 font-bold text-xs">DEMO MODE ACTIVE</span>
+            </div>
+          )}
+        </div>
       </footer>
+
       {/* Wallet History Modal */}
       {showWalletHistory && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">

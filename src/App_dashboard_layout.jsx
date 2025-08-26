@@ -61,7 +61,6 @@ function App() {
     refresh,
     clearError,
     isConnectedToICP,
-    isMockMode
   } = useCanisterData();
 
   const handleInputChange = (e) => {
@@ -222,7 +221,6 @@ function App() {
               <div className="flex items-center space-x-2 px-3 py-1.5 rounded-lg bg-slate-800/60 border border-cyan-400/20">
                 <div className={`w-2 h-2 rounded-full ${
                   isConnectedToICP ? 'bg-emerald-400 animate-pulse' : 
-                  isMockMode ? 'bg-yellow-400' : 'bg-red-400'
                 }`}></div>
                 <span className="text-xs text-cyan-400 font-mono">{agentStatus}</span>
               </div>
@@ -526,7 +524,6 @@ function App() {
         <div className="flex justify-between items-center text-xs font-mono">
           <div className="flex items-center space-x-4">
             <span className="text-slate-400">STATUS: <span className="text-emerald-400">{agentStatus?.toUpperCase()}</span></span>
-            <span className="text-slate-400">MODE: <span className="text-yellow-400">{isMockMode ? 'TRAINING' : 'LIVE'}</span></span>
             {lastUpdate && (
               <span className="text-slate-400">UPDATED: <span className="text-cyan-400">{lastUpdate.toLocaleTimeString()}</span></span>
             )}

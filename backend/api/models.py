@@ -1,4 +1,4 @@
-﻿from sqlalchemy import Column, Integer, String, Float, DateTime, Boolean, Text, ForeignKey
+from sqlalchemy import Column, Integer, String, Float, DateTime, Boolean, Text, ForeignKey
 from sqlalchemy.orm import relationship
 from database import Base
 from datetime import datetime
@@ -104,7 +104,35 @@ class ReputationHistory(Base):
     old_score = Column(Float, nullable=False)
     new_score = Column(Float, nullable=False)
     reason = Column(String(255), nullable=True)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    timestamp = Column(DateTime, default=datetime.utcnow)
     
     # Relationships
     user = relationship("User", back_populates="reputation_history")
+
+class DataProvider(Base):
+    __tablename__ = "data_providers"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String(255), nullable=False)
+    description = Column(Text)
+    data_types = Column(Text, default="[]")  # JSON array of data types
+    location = Column(String(100), default="Global")
+    base_price = Column(Float, default=0.0)
+    reputation_score = Column(Float, default=5.0)
+    availability_score = Column(Float, default=1.0)
+    avg_response_time = Column(String(50), default="< 1 second")
+    is_active = Column(Boolean, default=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+class SearchLog(Base):
+    __tablename__ = "search_logs"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    search_criteria = Column(Text)  # JSON string of search criteria
+    results_count = Column(Integer, default=0)
+    timestamp = Column(DateTime, default=datetime.utcnow)
+    
+    # Relationships
+    user = relationship("User")

@@ -22,3 +22,46 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Virtual environments
+venv/
+backend/venv/
+backend/api_venv/
+backend/dfx_venv/
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+
+# Database files
+*.db
+*.sqlite3
+genesisnet.db
+genesisnet.db.backup
+genesisnet_working.db
+
+# Environment files
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# DFX files
+.dfx/
+
+# Backup files
+*.backup
+*.bak
+*.old
+*.temp
+
+# Log files
+app_pids.txt
+
+# Temporary files
+temp_db/
+*.tmp

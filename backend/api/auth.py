@@ -29,8 +29,8 @@ def get_password_hash(password):
     return pwd_context.hash(password)
 
 def get_user(db: Session, username: str):
-    """Get a user by username."""
-    return db.query(models.User).filter(models.User.username == username).first()
+    """Get a user by email (username field in token contains email)."""
+    return db.query(models.User).filter(models.User.email == username).first()
 
 def authenticate_user(db: Session, username: str, password: str):
     """Authenticate a user."""

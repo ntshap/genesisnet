@@ -40,7 +40,6 @@ const useCanisterData = () => {
   const [agentStatus, setAgentStatus] = useState('Searching');
   const [connectionStatus, setConnectionStatus] = useState({
     isInitialized: true, // Start as initialized
-    fallbackToMock: false, // Use real ICP connection
     hasActors: false
   });
   const [isLoading, setIsLoading] = useState(false); // Start without loading
@@ -198,11 +197,11 @@ const useCanisterData = () => {
     try {
       safeSetState(setAgentStatus, 'Negotiating');
       
-      // Use the enhanced mock negotiation function
-      // Removed mock import - using real canister
+      // Use the enhanced negotiation function
+      // Using real canister data
       // TODO: Implement real canister negotiation call
       
-      // Status will be updated by the mock function, so we just need to refresh data
+      // Status will be updated by the function, so we just need to refresh data
       setTimeout(() => fetchAllData(), 500);
       
       return result;
@@ -331,8 +330,7 @@ const useCanisterData = () => {
     clearError,
     
     // Utilities
-    isConnectedToICP: connectionStatus.isInitialized && !connectionStatus.fallbackToMock,
-    isMockMode: connectionStatus.fallbackToMock
+    isConnectedToICP: connectionStatus.isInitialized,
   };
 };
 

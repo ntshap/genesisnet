@@ -1,0 +1,656 @@
+import React, { useState, useEffect, useRef, useContext } from 'react';
+import { Joyride } from 'react-joyride';
+import { Toaster } from 'react-hot-toast';
+import { LineChart, TrendingUp, TrendingDown, PieChart } from 'lucide-react';
+
+// Import components
+import NetworkVisualization from './components/NetworkVisualization/NetworkVisualization';
+import MetricsDisplay from './components/MetricsDisplay/MetricsDisplay';
+import RealtimeLog from './components/RealtimeLog/RealtimeLog';
+import AccountSettingsPanel from './components/AccountSettingsPanel';
+import WalletInfoPanel from './components/WalletInfoPanel';
+import { NotificationCenter } from './components/NotificationCenter/NotificationCenter';
+import DemoControlPanel from './components/DemoControlPanel/DemoControlPanel';
+import ControlPanel from './components/ControlPanel/ControlPanel';
+import MobileMenu from './components/MobileMenu/MobileMenu';
+
+// Import services and utils
+import { api } from './services/apiService';
+import { useAuth } from './context/AuthContext';
+import { useWallet } from './context/WalletContext';
+import { DEMO_CONFIG, tourSteps } from './utils/demoConfig';
+import { getNetworkMetrics, calculateNetworkHealth } from './utils/networkUtils';
+import { formatAmount, truncateAddress } from './utils/formatters';
+
+const Dashboard = () => {
+  // State for user and application data
+  const [activeTab, setActiveTab] = useState('network');
+  const [networkData, setNetworkData] = useState({ nodes: [], links: [] });
+  const [metrics, setMetrics] = useState({});
+  const [lastUpdate, setLastUpdate] = useState(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState([]);
+  const [selectedProvider, setSelectedProvider] = useState(null);
+  const [isNegotiating, setIsNegotiating] = useState(false);
+  const [negotiationStatus, setNegotiationStatus] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [agentStatus, setAgentStatus] = useState({
+    reputation: { status: 'online', cyclesBalance: '2.4B' },
+    dataProvider: { status: 'online', cyclesBalance: '1.8B' },
+    dataRequester: { status: 'online', cyclesBalance: '1.6B' }
+  });
+  const [logs, setLogs] = useState([]);
+  const [activeConnections, setActiveConnections] = useState([]);
+  const [transactionPool, setTransactionPool] = useState([]);
+  const [isActiveConnectionsDropdownOpen, setIsActiveConnectionsDropdownOpen] = useState(false);
+  const [isTransactionPoolDropdownOpen, setIsTransactionPoolDropdownOpen] = useState(false);
+  const [showSettingsPanel, setShowSettingsPanel] = useState(false);
+  const [userSettings, setUserSettings] = useState({
+    username: 'genesisuser',
+    email: 'user@genesisnet.io',
+    notifications: true,
+    autoConnect: true,
+    darkMode: false,
+    advancedMode: true
+  });
+  const [showWalletPanel, setShowWalletPanel] = useState(false);
+  const [showMobileMenu, setShowMobileMenu] = useState(false);
+  const [showNotifications, setShowNotifications] = useState(false);
+  const [showDemoControls, setShowDemoControls] = useState(false);
+  const [currentScenario, setCurrentScenario] = useState(null);
+  const [isScanning, setIsScanning] = useState(false);
+  
+  // Demo tour state
+  const [runTour, setRunTour] = useState(false);
+  const tourTargets = useRef({});
+  const [validTourSteps, setValidTourSteps] = useState([]);
+
+  // Auth context for user authentication
+  const { user, logout } = useAuth();
+  
+  // Wallet context for cryptocurrency operations
+  const { balance, transactions } = useWallet();
+
+  // Effect for initializing data
+  useEffect(() => {
+    loadInitialData();
+    // For demo purposes, add sample logs
+    const initialLogs = [
+      { timestamp: new Date(), message: 'System initialized', type: 'info' },
+      { timestamp: new Date(Date.now() - 5000), message: 'Connection established to GenesisNet', type: 'success' },
+      { timestamp: new Date(Date.now() - 10000), message: 'Reputation agent activated', type: 'info' }
+    ];
+    setLogs(initialLogs);
+  }, []);
+
+  // Function to load initial network data
+  const loadInitialData = async () => {
+    try {
+      setIsLoading(true);
+      
+      // Fetch network status and metrics
+      const status = await api.network.getStatus();
+      const metricsData = await api.network.getMetrics();
+      
+      // Update state with received data
+      setNetworkData(status.data || { nodes: [], links: [] });
+      setMetrics(metricsData.data || {});
+      setLastUpdate(new Date());
+      setIsLoading(false);
+      
+      // Add log entry
+      addLogEntry('Network data loaded successfully', 'success');
+    } catch (error) {
+      console.error('Error loading initial data:', error);
+      setIsLoading(false);
+      addLogEntry('Failed to load network data: ' + error.message, 'error');
+    }
+  };
+
+  // Function to add entries to the log
+  const addLogEntry = (message, type = 'info') => {
+    setLogs(prevLogs => [
+      { timestamp: new Date(), message, type },
+      ...prevLogs.slice(0, 99) // Keep only the latest 100 logs
+    ]);
+  };
+
+  // Function to handle search 
+  const handleSearch = async () => {
+    if (!searchQuery.trim()) return;
+    
+    try {
+      setIsLoading(true);
+      addLogEntry(`Searching for data: "${searchQuery}"`, 'info');
+      
+      // Replace with actual API call in production
+      const response = await api.data.search(searchQuery);
+      
+      setSearchResults(response.data || []);
+      setIsLoading(false);
+      
+      if (response.data?.length) {
+        addLogEntry(`Found ${response.data.length} data providers matching "${searchQuery}"`, 'success');
+      } else {
+        addLogEntry(`No results found for "${searchQuery}"`, 'warning');
+      }
+    } catch (error) {
+      console.error('Error during search:', error);
+      setIsLoading(false);
+      addLogEntry('Search failed: ' + error.message, 'error');
+    }
+  };
+
+  // Function to handle negotiation with a data provider
+  const handleNegotiate = (provider) => {
+    setSelectedProvider(provider);
+    setIsNegotiating(true);
+    setNegotiationStatus('initiating');
+    
+    addLogEntry(`Initiating negotiation with ${provider.name}`, 'info');
+    
+    // Simulate negotiation process
+    setTimeout(() => {
+      setNegotiationStatus('connecting');
+      addLogEntry(`Establishing secure connection to ${provider.name}`, 'info');
+      
+      setTimeout(() => {
+        setNegotiationStatus('verifying');
+        addLogEntry(`Verifying data quality from ${provider.name}`, 'info');
+        
+        setTimeout(() => {
+          setNegotiationStatus('completed');
+          addLogEntry(`Negotiation completed with ${provider.name}`, 'success');
+          
+          // Add to active connections
+          setActiveConnections(prev => [
+            {
+              provider: provider.name,
+              dataType: provider.type,
+              price: provider.currentPrice,
+              status: 'active',
+              started: new Date()
+            },
+            ...prev
+          ]);
+          
+          setTimeout(() => {
+            setIsNegotiating(false);
+            setNegotiationStatus(null);
+          }, 2000);
+        }, 2000);
+      }, 2000);
+    }, 2000);
+  };
+
+  // Function to handle refresh
+  const handleRefresh = () => {
+    loadInitialData();
+  };
+
+  // Function to handle scanning
+  const handleScan = () => {
+    setIsScanning(true);
+    addLogEntry('Network scan initiated', 'info');
+    
+    setTimeout(() => {
+      // Simulate discovering new nodes
+      setNetworkData(prevData => {
+        const newNode = {
+          id: `node-${prevData.nodes.length + 1}`,
+          name: `Discovered Node ${prevData.nodes.length + 1}`,
+          type: Math.random() > 0.5 ? 'provider' : 'requester',
+          status: 'active'
+        };
+        
+        const newLink = {
+          source: newNode.id,
+          target: prevData.nodes[Math.floor(Math.random() * prevData.nodes.length)].id,
+          value: Math.floor(Math.random() * 10) + 1
+        };
+        
+        return {
+          nodes: [...prevData.nodes, newNode],
+          links: [...prevData.links, newLink]
+        };
+      });
+      
+      addLogEntry('Scan complete. New nodes discovered.', 'success');
+      setIsScanning(false);
+    }, 3000);
+  };
+
+  // Functions to toggle dropdowns
+  const toggleActiveConnectionsDropdown = () => {
+    setIsActiveConnectionsDropdownOpen(!isActiveConnectionsDropdownOpen);
+  };
+  
+  const toggleTransactionPoolDropdown = () => {
+    setIsTransactionPoolDropdownOpen(!isTransactionPoolDropdownOpen);
+  };
+
+  // Function to start a demo scenario
+  const handleScenarioStart = (scenario) => {
+    setCurrentScenario(scenario);
+    addLogEntry(`Starting demo scenario: ${scenario.name}`, 'info');
+    
+    // Different logic based on the scenario
+    if (scenario.id === 'data-request') {
+      // Simulate data request scenario
+      setSearchQuery('weather data');
+      handleSearch();
+    } else if (scenario.id === 'network-attack') {
+      // Simulate network attack scenario
+      addLogEntry('⚠️ Unusual network activity detected', 'warning');
+      
+      setTimeout(() => {
+        addLogEntry('🚨 Potential DDoS attack in progress', 'error');
+        
+        setTimeout(() => {
+          addLogEntry('🛡️ Countermeasures activated', 'info');
+          
+          setTimeout(() => {
+            addLogEntry('✅ Attack mitigated, systems stable', 'success');
+          }, 3000);
+        }, 2000);
+      }, 2000);
+    }
+    
+    // Close the demo controls panel
+    setShowDemoControls(false);
+  };
+
+  // Handle tour steps validation
+  useEffect(() => {
+    // Filter out steps that don't have valid targets
+    const validSteps = tourSteps.filter(step => {
+      const target = step.target;
+      return document.querySelector(target) !== null;
+    });
+    setValidTourSteps(validSteps);
+  }, []);
+
+  return (
+    <>
+      <div className="min-h-screen bg-yellow-50 text-black relative flex flex-col">
+        <Joyride
+          steps={validTourSteps}
+          run={runTour}
+          continuous={true}
+          showSkipButton={true}
+          showProgress={true}
+          scrollToFirstStep={true}
+          scrollToStep={true}
+          disableScrolling={false}
+          spotlight={true}
+          styles={{
+            options: {
+              primaryColor: '#3B82F6',
+              textColor: '#1F2937',
+              zIndex: 10000,
+            },
+          }}
+        />
+        
+        {/* Main Header */}
+        <header className="bg-blue-500 text-white border-b-4 border-black">
+          <div className="container mx-auto px-4 py-3">
+            <div className="flex justify-between items-center">
+              {/* Logo and Title */}
+              <div className="flex items-center space-x-2">
+                <img src="/genesisnet.png" alt="GenesisNet Logo" className="h-10 w-10" />
+                <div>
+                  <h1 className="text-xl font-black tracking-tight">GenesisNet</h1>
+                  <p className="text-xs font-medium">Decentralized Data Marketplace</p>
+                </div>
+              </div>
+              
+              {/* Desktop Navigation */}
+              <div className="hidden md:flex items-center space-x-6">
+                {/* User Info */}
+                <div className="flex items-center space-x-3">
+                  <div className="text-right">
+                    <div className="text-sm font-bold">{user?.username || 'User'}</div>
+                    <div className="text-xs">{truncateAddress(user?.walletAddress)}</div>
+                  </div>
+                  <div 
+                    onClick={() => setShowSettingsPanel(true)}
+                    className="bg-yellow-400 w-9 h-9 rounded-full border-2 border-black text-black font-bold flex items-center justify-center cursor-pointer hover:bg-yellow-300 transition-colors"
+                  >
+                    {(user?.username || 'U').charAt(0).toUpperCase()}
+                  </div>
+                </div>
+                
+                {/* Wallet Button */}
+                <button 
+                  onClick={() => setShowWalletPanel(!showWalletPanel)}
+                  className="px-3 py-2 bg-cyan-400 text-black font-bold rounded border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0px_0px_rgba(0,0,0,1)] hover:bg-cyan-300 transition-all"
+                >
+                  <div className="flex items-center space-x-2">
+                    <span>{formatAmount(balance)} ICP</span>
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </div>
+                </button>
+                
+                {/* Notifications */}
+                <div className="relative">
+                  <button 
+                    onClick={() => setShowNotifications(!showNotifications)}
+                    className="relative p-1.5 bg-purple-400 text-black rounded-full border-2 border-black hover:bg-purple-300 transition-colors"
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                    </svg>
+                    <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs w-4 h-4 flex items-center justify-center rounded-full border border-black">3</span>
+                  </button>
+                </div>
+                
+                {/* Demo Controls Button (only in demo mode) */}
+                {DEMO_CONFIG.DEMO_MODE && (
+                  <button 
+                    onClick={() => setShowDemoControls(!showDemoControls)}
+                    className="px-3 py-2 bg-yellow-400 text-black font-bold rounded border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0px_0px_rgba(0,0,0,1)] hover:bg-yellow-300 transition-all"
+                  >
+                    Demo Controls
+                  </button>
+                )}
+                
+                {/* Start Tour Button */}
+                <button 
+                  onClick={() => setRunTour(true)}
+                  className="px-3 py-2 bg-green-400 text-black font-bold rounded border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0px_0px_rgba(0,0,0,1)] hover:bg-green-300 transition-all"
+                >
+                  Tour
+                </button>
+                
+                {/* Logout Button */}
+                <button 
+                  onClick={logout}
+                  className="px-3 py-2 bg-red-400 text-black font-bold rounded border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0px_0px_rgba(0,0,0,1)] hover:bg-red-300 transition-all"
+                >
+                  Logout
+                </button>
+              </div>
+              
+              {/* Mobile Menu Button */}
+              <button 
+                className="md:hidden p-2 bg-blue-600 rounded border border-white"
+                onClick={() => setShowMobileMenu(!showMobileMenu)}
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                </svg>
+              </button>
+            </div>
+          </div>
+        </header>
+        
+        {/* Mobile Menu */}
+        {showMobileMenu && (
+          <MobileMenu
+            user={user}
+            balance={balance}
+            onClose={() => setShowMobileMenu(false)}
+            onWalletClick={() => {
+              setShowWalletPanel(true);
+              setShowMobileMenu(false);
+            }}
+            onSettingsClick={() => {
+              setShowSettingsPanel(true);
+              setShowMobileMenu(false);
+            }}
+            onNotificationsClick={() => {
+              setShowNotifications(true);
+              setShowMobileMenu(false);
+            }}
+            onTourStart={() => {
+              setRunTour(true);
+              setShowMobileMenu(false);
+            }}
+            onLogout={logout}
+            isDemoMode={DEMO_CONFIG.DEMO_MODE}
+            onDemoControlsClick={() => {
+              setShowDemoControls(true);
+              setShowMobileMenu(false);
+            }}
+          />
+        )}
+        
+        {/* Wallet Panel Overlay */}
+        {showWalletPanel && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex justify-center items-start pt-20">
+            <div className="bg-yellow-100 border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] rounded-lg p-6 max-w-md w-full mx-4">
+              <button 
+                className="absolute top-3 right-3 px-2 py-1 bg-red-300 text-black font-black border-2 border-black rounded shadow hover:bg-red-400"
+                onClick={() => setShowWalletPanel(false)}
+              >X</button>
+              <WalletInfoPanel balance={balance} transactions={transactions} />
+            </div>
+          </div>
+        )}
+        
+        {/* Settings Panel Overlay */}
+        {showSettingsPanel && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex justify-center items-start pt-20">
+            <div className="bg-purple-100 border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] rounded-lg p-6 max-w-md w-full mx-4">
+              <button 
+                className="absolute top-3 right-3 px-2 py-1 bg-red-300 text-black font-black border-2 border-black rounded shadow hover:bg-red-400"
+                onClick={() => setShowSettingsPanel(false)}
+              >X</button>
+              <AccountSettingsPanel settings={userSettings} onChange={setUserSettings} />
+            </div>
+          </div>
+        )}
+        
+        {/* Notifications Overlay */}
+        {showNotifications && (
+          <NotificationCenter onClose={() => setShowNotifications(false)} />
+        )}
+        
+        {/* Main Content Area */}
+        <main className="flex h-[calc(100vh-80px)] pt-2">
+          {/* Left Sidebar - Control Panel & Navigation */}
+          <aside className="w-80 bg-white border-r-4 border-black shadow-[8px_0px_0px_0px_rgba(0,0,0,1)] overflow-y-auto max-h-[calc(100vh-100px)] scrollbar-neubrutalism mt-2 ml-2 rounded-tl-lg">
+            <ControlPanel 
+              searchQuery={searchQuery}
+              setSearchQuery={setSearchQuery}
+              handleSearch={handleSearch}
+              activeTab={activeTab}
+              setActiveTab={setActiveTab}
+              searchResults={searchResults}
+              selectedProvider={selectedProvider}
+              isNegotiating={isNegotiating}
+              handleNegotiate={handleNegotiate}
+              negotiationStatus={negotiationStatus}
+              userSettings={userSettings}
+              balance={balance}
+            />
+          </aside>
+          
+          {/* Center - Content based on Active Tab */}
+          <section className="flex-1 bg-yellow-100 relative">
+            <div className="h-full p-4 pt-2">
+              <div className="h-full bg-white border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] rounded-lg overflow-hidden relative mt-2">
+                
+                {/* Network Tab Content */}
+                {activeTab === 'network' && (
+                  <>
+                    {/* Network Visualization Header */}
+                    <div className="absolute top-0 left-0 right-0 z-10 bg-cyan-300 border-b-4 border-black p-3">
+                      <div className="flex items-center justify-between">
+                        <h2 className="text-sm font-black text-black">Network Topology</h2>
+                        <div className="flex items-center space-x-4">
+                          <div className="flex items-center space-x-2">
+                            <div className="w-2 h-2 bg-green-500 border border-black rounded-full"></div>
+                            <span className="text-xs text-black font-black">Live View</span>
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            <button
+                              onClick={handleScan}
+                              disabled={isScanning}
+                              className={"px-2 py-1 border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] rounded text-xs text-black font-black transition-all " + 
+                                (isScanning
+                                  ? 'bg-gray-300 cursor-not-allowed'
+                                  : 'bg-blue-400 hover:translate-x-1 hover:translate-y-1 hover:shadow-[1px_1px_0px_0px_rgba(0,0,0,1)]')
+                              }
+                            >
+                              {isScanning ? 'SCANNING...' : 'SCAN'}
+                            </button>
+                            <button
+                              onClick={handleRefresh}
+                              className="px-2 py-1 bg-lime-400 border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] rounded text-xs text-black font-black hover:translate-x-1 hover:translate-y-1 hover:shadow-[1px_1px_0px_0px_rgba(0,0,0,1)] transition-all"
+                            >
+                              REFRESH
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    {/* Network Visualization Component */}
+                    <div className="pt-16 h-full network-visualization" data-tour="network-visualization">
+                      <NetworkVisualization
+                        agentStatus={agentStatus}
+                        networkData={networkData}
+                        onNegotiate={handleNegotiate}
+                        isLoading={isLoading}
+                        searchResults={searchResults}
+                        selectedProvider={selectedProvider}
+                        negotiationStatus={negotiationStatus}
+                      />
+                    </div>
+                  </>
+                )}
+                
+                {/* Analytics Tab Content */}
+                {activeTab === 'analytics' && (
+                  <>
+                    {/* Analytics Header */}
+                    <div className="absolute top-0 left-0 right-0 z-10 bg-pink-300 border-b-4 border-black p-3">
+                      <div className="flex items-center justify-between">
+                        <h2 className="text-sm font-black text-black">Data Analytics Dashboard</h2>
+                        <div className="flex items-center space-x-4">
+                          <div className="flex items-center space-x-2">
+                            <div className="w-2 h-2 bg-blue-500 border border-black rounded-full"></div>
+                            <span className="text-xs text-black font-black">Real-time</span>
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            <button className="px-2 py-1 bg-yellow-400 border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] rounded text-xs text-black font-black hover:translate-x-1 hover:translate-y-1 hover:shadow-[1px_1px_0px_0px_rgba(0,0,0,1)] transition-all">
+                              EXPORT
+                            </button>
+                            <button
+                              onClick={handleRefresh}
+                              className="px-2 py-1 bg-lime-400 border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] rounded text-xs text-black font-black hover:translate-x-1 hover:translate-y-1 hover:shadow-[1px_1px_0px_0px_rgba(0,0,0,1)] transition-all"
+                            >
+                              REFRESH
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    {/* Analytics Content */}
+                    <div className="pt-16 h-full p-4 overflow-y-auto">
+                      <div className="space-y-4">
+                        <div className="bg-purple-200 border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] rounded-lg p-4 text-center">
+                          <div className="text-2xl font-black text-black mb-1">{Math.round((metrics.successRate || 0.987) * 100)}%</div>
+                          <div className="text-xs font-bold text-black uppercase">Success Rate</div>
+                        </div>
+                        <div className="bg-white border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] rounded-lg p-4">
+                          <h3 className="text-lg font-black text-black mb-4">Transaction Volume (24h)</h3>
+                          <div className="space-y-3">
+                            {[
+                              { name: 'Financial', value: 45, color: 'bg-green-300' },
+                              { name: 'Weather', value: 30, color: 'bg-blue-300' },
+                              { name: 'IoT', value: 15, color: 'bg-yellow-300' },
+                              { name: 'Research', value: 10, color: 'bg-purple-300' }
+                            ].map((category, index) => (
+                              <div key={index} className="flex items-center space-x-2">
+                                <div className="w-24 text-xs font-bold text-black">{category.name}</div>
+                                <div className="flex-1 bg-gray-200 border-2 border-black rounded-full h-4">
+                                  <div className={category.color + " h-4 rounded-full border-r-2 border-black"} style={{width: category.value + "%"}}></div>
+                                </div>
+                                <div className="text-xs font-black text-black w-8">{category.value}%</div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </>
+                )}
+              </div>
+            </div>
+          </section>
+          
+          {/* Right Sidebar - Metrics & Logs */}
+          <aside className="w-80 bg-white border-l-4 border-black shadow-[-8px_0px_0px_0px_rgba(0,0,0,1)] overflow-y-auto max-h-[calc(100vh-100px)] scrollbar-neubrutalism mt-2 mr-2 rounded-tr-lg">
+            <div className="p-4 space-y-4">
+              {/* System Overview Header */}
+              <div className="border-b-4 border-black pb-3">
+                <h2 className="text-sm font-black text-black uppercase tracking-wide">
+                  {activeTab === 'network' ? 'System Overview' : 'Analytics Overview'}
+                </h2>
+                <p className="text-xs text-purple-600 mt-1 font-bold">
+                  {activeTab === 'network' ? 'Real-time monitoring & analytics' : 'Data insights & statistics'}
+                </p>
+              </div>
+              
+              {activeTab === 'network' && (
+                <>
+                  {/* Performance Metrics */}
+                  <div className="bg-yellow-200 border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] rounded-lg p-3 metrics-display" data-tour="metrics-display">
+                    <div className="flex items-center justify-between mb-3">
+                      <h3 className="text-xs font-black text-black">PERFORMANCE</h3>
+                      <span className="text-xs text-black font-bold">Live</span>
+                    </div>
+                    <MetricsDisplay metrics={metrics} lastUpdate={lastUpdate} />
+                  </div>
+                  
+                  {/* Resource Usage Charts */}
+                  <div className="space-y-3">
+                    <h3 className="text-xs font-black text-black uppercase tracking-wide">Resource Usage</h3>
+                    
+                    <div className="grid grid-cols-1 gap-3">
+                      <div className="bg-blue-200 border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] rounded-lg p-3">
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-xs text-black font-bold">CPU Usage</span>
+                          <span className="text-xs font-black text-black">67%</span>
+                        </div>
+                        <div className="w-full bg-white border-2 border-black rounded-full h-2">
+                          <div className="bg-gradient-to-r from-cyan-400 to-blue-500 h-2 rounded-full border-r-2 border-black" style={{width: '67%'}}></div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  {/* Real-time Activity Log */}
+                  <div className="space-y-3">
+                    <h3 className="text-xs font-black text-black uppercase tracking-wide">Activity Log</h3>
+                    <div className="h-96 realtime-log" data-tour="realtime-log">
+                      <RealtimeLog logs={logs} />
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
+          </aside>
+        </main>
+
+        {/* Demo Controls Overlay */}
+        {showDemoControls && DEMO_CONFIG.DEMO_MODE && (
+          <DemoControlPanel
+            onClose={() => setShowDemoControls(false)}
+            onScenarioStart={handleScenarioStart}
+            currentScenario={currentScenario}
+          />
+        )}
+        
+        {/* Toast Notifications */}
+        <Toaster position="bottom-right" />
+      </div>
+    </>
+  );
+};
+
+export default Dashboard;

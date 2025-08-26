@@ -4,7 +4,8 @@ from typing import List, Optional, Dict, Any
 import json
 from datetime import datetime
 
-import models, schemas
+import models
+import schemas
 from database import get_db
 from auth import get_current_user
 

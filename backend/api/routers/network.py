@@ -4,7 +4,8 @@ from typing import List, Optional, Dict, Any, Dict, Any
 import json
 from datetime import datetime, timedelta
 
-import models, schemas
+import models
+import schemas
 from database import get_db
 from auth import get_current_user
 from network import fetch_network_status, get_canister_status
@@ -209,6 +210,76 @@ def search_data_providers(
     except Exception as e:
         # Log the error
         print(f"Error searching data providers: {str(e)}")
+        
+        return {
+            "results": [],
+            "count": 0,
+            "success": False,
+            "message": f"Search failed: {str(e)}"
+        }
+
+@router.post("/search-public", response_model=Dict[str, Any])
+def search_data_providers_public(
+    search_criteria: Dict[str, Any],
+    db: Session = Depends(get_db)
+):
+    """
+    Public search for data providers - no authentication required (for testing)
+    """
+    try:
+        print(f"Received search criteria: {search_criteria}")
+        
+        # Basic query for data providers
+        query = db.query(models.DataProvider).filter(
+            models.DataProvider.is_active == True
+        )
+        
+        # Apply filters based on search criteria
+        if 'data_type' in search_criteria and search_criteria['data_type']:
+            data_type = search_criteria['data_type']
+            query = query.filter(models.DataProvider.data_types.contains(data_type))
+            
+        if 'location' in search_criteria and search_criteria['location']:
+            location = search_criteria['location']
+            query = query.filter(models.DataProvider.location == location)
+            
+        if 'min_reputation' in search_criteria and search_criteria['min_reputation']:
+            min_reputation = search_criteria['min_reputation']
+            query = query.filter(models.DataProvider.reputation_score >= min_reputation)
+            
+        if 'max_price' in search_criteria and search_criteria['max_price']:
+            max_price = search_criteria['max_price']
+            query = query.filter(models.DataProvider.base_price <= max_price)
+        
+        # Execute query
+        providers = query.all()
+        
+        # Transform to response format
+        results = []
+        for provider in providers:
+            results.append({
+                "id": provider.id,
+                "name": provider.name,
+                "reputation": provider.reputation_score,
+                "price": provider.base_price,
+                "location": provider.location,
+                "dataTypes": json.loads(provider.data_types),
+                "responseTime": provider.avg_response_time,
+                "availability": provider.availability_score
+            })
+        
+        return {
+            "results": results,
+            "count": len(results),
+            "success": True,
+            "message": "Search completed successfully"
+        }
+        
+    except Exception as e:
+        # Log the error
+        print(f"Error searching data providers: {str(e)}")
+        import traceback
+        traceback.print_exc()
         
         return {
             "results": [],

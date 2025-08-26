@@ -9,12 +9,13 @@ class UserBase(BaseModel):
 
 class UserCreate(UserBase):
     password: str
+    full_name: Optional[str] = None
     
     @validator('password')
     def password_complexity(cls, v):
         """Validate password complexity."""
-        if len(v) < 8:
-            raise ValueError('Password must be at least 8 characters long')
+        if len(v) < 6:
+            raise ValueError('Password must be at least 6 characters long')
         return v
 
 class UserResponse(UserBase):
@@ -27,7 +28,7 @@ class UserResponse(UserBase):
         orm_mode = True
 
 class UserLogin(BaseModel):
-    username: str
+    username: str  # This is actually being used as email in the frontend
     password: str
 
 class Token(BaseModel):

@@ -1,13 +1,8 @@
-// Identity Management Service
-// Handles Internet Computer identity creation, storage, and management
-
-
-// Import ICP identity classes
+import { Principal } from '@dfinity/principal';
+import { HttpAgent, Actor } from '@dfinity/agent';
 import { Ed25519KeyIdentity } from '@dfinity/identity';
-
 import { generateIdentity } from './icp-crypto';
 import { principalToAccountIdentifier, accountIdentifierToHex } from './icpUtils';
-import { icpLedgerService } from './icpLedgerService';
 
 // Constants
 const LOCAL_STORAGE_KEY = 'genesisnet-identity';
@@ -19,7 +14,14 @@ const SEED_SIZE_BYTES = 32; // 256 bits
  */
 const generateRandomSeed = () => {
   const seed = new Uint8Array(SEED_SIZE_BYTES);
-  window.crypto.getRandomValues(seed);
+  if (typeof window !== 'undefined' && window.crypto) {
+    window.crypto.getRandomValues(seed);
+  } else {
+    // Fallback for environments without window.crypto
+    for (let i = 0; i < seed.length; i++) {
+      seed[i] = Math.floor(Math.random() * 256);
+    }
+  }
   return seed;
 };
 
@@ -48,7 +50,8 @@ const hexToSeed = (hex) => {
 };
 
 /**
- * Identity Management Service for ICP
+ * Identity Service Class
+ * Manages Internet Computer identities for the application
  */
 class IdentityService {
   constructor() {
@@ -57,69 +60,91 @@ class IdentityService {
     this.accountId = null;
     this.accountIdHex = null;
     this.isInitialized = false;
+    this.initializationPromise = null;
   }
 
   /**
    * Initialize the identity service
-   * @returns {Promise<boolean>} Success
+   * @returns {Promise<boolean>} Success status
    */
   async initialize() {
+    // Prevent multiple simultaneous initializations
+    if (this.initializationPromise) {
+      return this.initializationPromise;
+    }
+
+    this.initializationPromise = this._doInitialize();
+    return this.initializationPromise;
+  }
+
+  async _doInitialize() {
     try {
-      // Try to load existing identity from localStorage
-      const storedIdentity = localStorage.getItem(LOCAL_STORAGE_KEY);
+      // Check if we have a stored identity
+      const storedIdentity = this.loadStoredIdentity();
       
       if (storedIdentity) {
-        // We have a stored identity
-        await this.loadIdentity(storedIdentity);
+        console.log('Loaded existing identity with principal:', this.principal.toText());
+        this.isInitialized = true;
+        return true;
       } else {
-        // We need to create a new identity
+        // Create a new identity
         await this.createNewIdentity();
+        this.isInitialized = true;
+        return true;
       }
-
-      // Initialize the ICP Ledger service with our identity
-      await icpLedgerService.initialize(this.identity);
-      
-      this.isInitialized = true;
-      console.log('Identity service initialized with principal:', this.principal.toText());
-      return true;
     } catch (error) {
       console.error('Failed to initialize identity service:', error);
+      this.isInitialized = false;
       return false;
+    } finally {
+      this.initializationPromise = null;
     }
   }
 
   /**
-   * Load an identity from storage
-   * @param {string} storedIdentity Stored identity string
-   * @returns {Promise<void>}
+   * Load identity from localStorage
+   * @returns {boolean} Success status
    */
-  async loadIdentity(storedIdentity) {
+  loadStoredIdentity() {
     try {
-      // Parse the stored identity JSON
-      const identityData = JSON.parse(storedIdentity);
-      
-      // Different ways to create identity based on what's stored
-      if (identityData.type === 'seed') {
-        // Create identity from seed
-        const seed = hexToSeed(identityData.seed);
-        this.identity = Ed25519KeyIdentity.fromSecretKey(seed);
-      } else if (identityData.key) {
-        // Legacy format - direct key
-        this.identity = Ed25519KeyIdentity.fromJSON(identityData.key);
-      } else {
-        // Unknown format, create new
-        throw new Error('Unknown identity format');
+      if (typeof localStorage === 'undefined') {
+        console.warn('localStorage not available');
+        return false;
       }
-      
-      // Set up principal and account info
+
+      const storedData = localStorage.getItem(LOCAL_STORAGE_KEY);
+      if (!storedData) {
+        return false;
+      }
+
+      const identityData = JSON.parse(storedData);
+      if (!identityData.seed) {
+        console.warn('Invalid stored identity data');
+        return false;
+      }
+
+      // Recreate identity from stored seed
+      const seed = hexToSeed(identityData.seed);
+      this.identity = Ed25519KeyIdentity.fromSecretKey(seed);
       this.principal = this.identity.getPrincipal();
-      this.accountId = principalToAccountIdentifier(this.principal);
-      this.accountIdHex = accountIdentifierToHex(this.accountId);
       
-      console.log('Loaded existing identity with principal:', this.principal.toText());
+      // Calculate account ID if not stored or if utilities are available
+      if (typeof principalToAccountIdentifier === 'function') {
+        this.accountId = principalToAccountIdentifier(this.principal);
+        this.accountIdHex = accountIdentifierToHex(this.accountId);
+      } else {
+        // Fallback to stored values
+        this.accountIdHex = identityData.accountId || this.principal.toText();
+      }
+
+      return true;
     } catch (error) {
-      console.error('Error loading identity, creating new one:', error);
-      await this.createNewIdentity();
+      console.error('Error loading stored identity:', error);
+      // Clear corrupted data
+      if (typeof localStorage !== 'undefined') {
+        localStorage.removeItem(LOCAL_STORAGE_KEY);
+      }
+      return false;
     }
   }
 
@@ -129,27 +154,35 @@ class IdentityService {
    */
   async createNewIdentity() {
     try {
-      // Generate a random seed
+      // Generate a new seed
       const seed = generateRandomSeed();
       
-      // Create the identity from seed
+      // Create identity from seed
       this.identity = Ed25519KeyIdentity.fromSecretKey(seed);
-      
-      // Set up principal and account info
       this.principal = this.identity.getPrincipal();
-      this.accountId = principalToAccountIdentifier(this.principal);
-      this.accountIdHex = accountIdentifierToHex(this.accountId);
       
+      // Calculate account ID if utilities are available
+      if (typeof principalToAccountIdentifier === 'function') {
+        this.accountId = principalToAccountIdentifier(this.principal);
+        this.accountIdHex = accountIdentifierToHex(this.accountId);
+      } else {
+        // Fallback
+        this.accountIdHex = this.principal.toText();
+      }
+
       // Store the identity in localStorage
-      const identityData = {
-        type: 'seed',
-        seed: seedToHex(seed),
-        principal: this.principal.toText(),
-        accountId: this.accountIdHex,
-        created: new Date().toISOString()
-      };
+      if (typeof localStorage !== 'undefined') {
+        const identityData = {
+          type: 'seed',
+          seed: seedToHex(seed),
+          principal: this.principal.toText(),
+          accountId: this.accountIdHex,
+          created: new Date().toISOString()
+        };
+
+        localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(identityData));
+      }
       
-      localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(identityData));
       console.log('Created new identity with principal:', this.principal.toText());
     } catch (error) {
       console.error('Error creating new identity:', error);
@@ -186,7 +219,7 @@ class IdentityService {
    * @returns {string} Account ID hex
    */
   getAccountIdHex() {
-    return this.accountIdHex;
+    return this.accountIdHex || '';
   }
 
   /**
@@ -202,16 +235,26 @@ class IdentityService {
    * @returns {void}
    */
   clearIdentity() {
-    localStorage.removeItem(LOCAL_STORAGE_KEY);
+    if (typeof localStorage !== 'undefined') {
+      localStorage.removeItem(LOCAL_STORAGE_KEY);
+    }
     this.identity = null;
     this.principal = null;
     this.accountId = null;
     this.accountIdHex = null;
     this.isInitialized = false;
+    this.initializationPromise = null;
+  }
+
+  /**
+   * Check if the service is initialized
+   * @returns {boolean} Initialization status
+   */
+  isReady() {
+    return this.isInitialized && this.identity !== null;
   }
 }
 
 // Export a singleton instance
 export const identityService = new IdentityService();
-
 export default identityService;

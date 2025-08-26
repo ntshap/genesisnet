@@ -82,7 +82,7 @@ const RealtimeLog = ({ logs, isLoading, onClearLogs }) => {
     let messageText, level, timestamp, source;
     
     if (typeof logMessage === 'object' && logMessage !== null) {
-      // Handle log objects from useInteractiveDemo
+      // Handle log objects from useRealData
       messageText = logMessage.message || JSON.stringify(logMessage);
       level = logMessage.level || 'info';
       timestamp = logMessage.timestamp ? new Date(logMessage.timestamp).toLocaleTimeString() : new Date().toLocaleTimeString();
