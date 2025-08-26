@@ -23,11 +23,11 @@
     "audit:deps": "npm outdated"
   },
   "dependencies": {
-    "@dfinity/agent": "^3.1.0",
-    "@dfinity/candid": "^3.2.2",
-    "@dfinity/identity": "^3.1.0",
-    "@dfinity/ledger-icp": "^4.1.0",
-    "@dfinity/principal": "^3.2.2",
+  "@dfinity/agent": "^2.0.0",
+  "@dfinity/candid": "^2.0.0",
+  "@dfinity/identity": "^2.0.0",
+  "@dfinity/ledger-icp": "^2.6.13",
+  "@dfinity/principal": "^2.0.0",
     "d3": "^7.9.0",
     "js-sha256": "^0.11.1",
     "lucide-react": "^0.536.0",
