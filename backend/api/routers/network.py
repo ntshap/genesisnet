@@ -152,30 +152,49 @@ def search_data_providers(
     db: Session = Depends(get_db)
 ):
     """
-    Search for data providers matching criteria
+    Search for data providers matching criteria (authenticated).
+    Accepts either camelCase (dataType, minReputation, maxPrice) or snake_case (data_type, min_reputation, max_price).
     """
     try:
+        # Normalize criteria to a dict
+        if hasattr(search_criteria, "dict"):
+            criteria = search_criteria.dict()
+        else:
+            criteria = dict(search_criteria or {})
+
+        # Extract with support for both naming styles
+        data_type = criteria.get("data_type") or criteria.get("dataType")
+        location = criteria.get("location")
+        min_reputation = criteria.get("min_reputation") or criteria.get("minReputation")
+        max_price = criteria.get("max_price") or criteria.get("maxPrice")
+
         # Basic query for data providers
         query = db.query(models.DataProvider).filter(
             models.DataProvider.is_active == True
         )
-        
+
         # Apply filters based on search criteria
-        if search_criteria.dataType:
-            query = query.filter(models.DataProvider.data_types.contains(search_criteria.dataType))
-            
-        if search_criteria.location:
-            query = query.filter(models.DataProvider.location == search_criteria.location)
-            
-        if search_criteria.minReputation:
-            query = query.filter(models.DataProvider.reputation_score >= search_criteria.minReputation)
-            
-        if search_criteria.maxPrice:
-            query = query.filter(models.DataProvider.base_price <= search_criteria.maxPrice)
-        
+        if data_type:
+            query = query.filter(models.DataProvider.data_types.contains(data_type))
+
+        if location:
+            query = query.filter(models.DataProvider.location == location)
+
+        if min_reputation is not None and min_reputation != "":
+            try:
+                query = query.filter(models.DataProvider.reputation_score >= float(min_reputation))
+            except ValueError:
+                pass
+
+        if max_price is not None and max_price != "":
+            try:
+                query = query.filter(models.DataProvider.base_price <= float(max_price))
+            except ValueError:
+                pass
+
         # Execute query
         providers = query.all()
-        
+
         # Transform to response format
         results = []
         for provider in providers:
@@ -189,28 +208,28 @@ def search_data_providers(
                 "responseTime": provider.avg_response_time,
                 "availability": provider.availability_score
             })
-        
+
         # Create search log
         search_log = models.SearchLog(
             user_id=current_user.id,
-            search_criteria=json.dumps(search_criteria.dict()),
+            search_criteria=json.dumps(criteria),
             results_count=len(results),
             timestamp=datetime.now()
         )
         db.add(search_log)
         db.commit()
-        
+
         return {
             "results": results,
             "count": len(results),
             "success": True,
             "message": "Search completed successfully"
         }
-        
+
     except Exception as e:
         # Log the error
         print(f"Error searching data providers: {str(e)}")
-        
+
         return {
             "results": [],
             "count": 0,
