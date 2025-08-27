@@ -684,7 +684,6 @@ Transform GenesisNet into the **"AWS of Data"** - a comprehensive platform where
 - **GitHub Repository**: [https://github.com/ntshap/genesisnet](https://github.com/ntshap/genesisnet)
 - **Demo Video**: [https://drive.google.com/drive/folders/1fzoAPIOadaA6iDamUGSkOdsP2t0xP711?usp=sharing](https://drive.google.com/drive/folders/1fzoAPIOadaA6iDamUGSkOdsP2t0xP711?usp=sharing)
 - **Instagram**: [https://www.instagram.com/genesisnet.project/](https://www.instagram.com/genesisnet.project/)
-- **Agentverse Agents**: [https://agentverse.ai/agents/genesisnet](https://agentverse.ai/agents/genesisnet)
 
 ---
 
