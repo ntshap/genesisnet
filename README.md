@@ -1,7 +1,7 @@
 # GenesisNet - Autonomous AI Data Marketplace Platform
 
 <div align="center">
-  <img src="./assets/genesis-net-header.png" alt="GenesisNet - Network Visualization" width="900">
+  <img src="[./assets/genesis-net-header.png" alt="GenesisNet - Network Visualization](https://drive.google.com/file/d/1Pw8fRxfiLvO2MTqebCQ8NdFvJ46G6PX3/view?usp=sharing)" width="900">
 </div>
 
 <br>
