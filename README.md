@@ -1,10 +1,16 @@
 # GenesisNet - Autonomous AI Data Marketplace Platform
 
 <div align="center">
-  <img src="./public/genesisnet.png" alt="GenesisNet Logo" width="300" height="300">
+  <img src="./assets/genesis-net-header.png" alt="GenesisNet - Network Visualization" width="900">
 </div>
 
+<br>
+
+<div align="center">
+
 ![tag:innovationlab](https://img.shields.io/badge/innovationlab-3D8BD3)
+
+</div>
 
 <div align="center">
   <img src="./assets/demo.gif" alt="GenesisNet Live Demo" width="800">
