@@ -1,6 +1,15 @@
 # GenesisNet - Autonomous AI Data Marketplace Platform
 
+<div align="center">
+  <img src="./public/genesisnet.png" alt="GenesisNet Logo" width="300" height="300">
+</div>
+
 ![tag:innovationlab](https://img.shields.io/badge/innovationlab-3D8BD3)
+
+<div align="center">
+  <img src="./assets/demo.gif" alt="GenesisNet Live Demo" width="800">
+  <p><em>Live demonstration of autonomous AI agents in action</em></p>
+</div>
 
 ## 🚀 NextGen Agents Hackathon Submission
 
@@ -147,6 +156,10 @@ class StableMemoryStorage(PersistentStorage):
 
 ## 🏗️ Architecture Overview
 
+<div align="center">
+  <img src="./assets/architecture-diagram.png" alt="GenesisNet Architecture" width="800">
+</div>
+
 ```mermaid
 graph TB
     subgraph "Frontend (React + Vite)"
@@ -175,6 +188,41 @@ graph TB
     A --> K
 ```
 
+## 👥 User Flow Diagram
+
+<div align="center">
+  <img src="./assets/user-flow-diagram.png" alt="GenesisNet User Flow" width="900">
+</div>
+
+### Detailed User Journey
+
+```mermaid
+sequenceDiagram
+    participant User as 👤 User
+    participant Frontend as 🖥️ Frontend
+    participant Requester as 🔍 Data Requester Agent
+    participant Provider as 📊 Data Provider Agent
+    participant Reputation as 🏆 Reputation Agent
+    participant ICP as ⛓️ ICP Ledger
+
+    User->>Frontend: 1. Input search criteria
+    Frontend->>Requester: 2. Start data search
+    Requester->>Provider: 3. Broadcast query
+    Provider->>Requester: 4. Send data offers
+    Requester->>Reputation: 5. Check provider reputation
+    Reputation->>Requester: 6. Return trust score
+    Requester->>Frontend: 7. Display ranked offers
+    User->>Frontend: 8. Select best offer
+    Frontend->>Requester: 9. Initiate negotiation
+    Requester->>Provider: 10. Negotiate terms
+    Provider->>Requester: 11. Accept/Counter offer
+    Requester->>ICP: 12. Process payment
+    ICP->>Provider: 13. Transfer funds
+    Provider->>Requester: 14. Deliver data
+    Requester->>Frontend: 15. Confirm completion
+    Frontend->>User: 16. Show transaction success
+```
+
 ### Technology Stack
 
 **Frontend:**
@@ -197,7 +245,29 @@ graph TB
 
 ---
 
-## 🌟 Key Innovations & Uniqueness
+## � Live Features Showcase
+
+### Real-time Network Visualization
+<div align="center">
+  <img src="./assets/network-visualization.gif" alt="Network Visualization" width="600">
+  <p><em>Watch agents connect and negotiate in real-time with D3.js visualization</em></p>
+</div>
+
+### Autonomous Agent Negotiation
+<div align="center">
+  <img src="./assets/agent-negotiation.gif" alt="Agent Negotiation" width="600">
+  <p><em>AI agents automatically discovering data and negotiating prices</em></p>
+</div>
+
+### ICP Payment Integration
+<div align="center">
+  <img src="./assets/icp-payment.gif" alt="ICP Payment" width="600">
+  <p><em>Seamless cryptocurrency payments via Internet Computer Protocol</em></p>
+</div>
+
+---
+
+## �🌟 Key Innovations & Uniqueness
 
 ### 1. **Autonomous Agent Orchestration**
 Unlike traditional marketplaces, GenesisNet agents operate completely autonomously:
@@ -604,9 +674,10 @@ Transform GenesisNet into the **"AWS of Data"** - a comprehensive platform where
 
 ## 🔗 Important Links
 
-- **Live Demo**: [https://genesisnet-demo.netlify.app](https://genesisnet-demo.netlify.app)
+- **Live Demo**: [https://genesisnet.vercel.app/](https://genesisnet.vercel.app/)
 - **GitHub Repository**: [https://github.com/ntshap/genesisnet](https://github.com/ntshap/genesisnet)
-- **Demo Video**: [https://youtu.be/demo-video-link](https://youtu.be/demo-video-link)
+- **Demo Video**: [https://drive.google.com/drive/folders/1fzoAPIOadaA6iDamUGSkOdsP2t0xP711?usp=sharing](https://drive.google.com/drive/folders/1fzoAPIOadaA6iDamUGSkOdsP2t0xP711?usp=sharing)
+- **Instagram**: [https://www.instagram.com/genesisnet.project/](https://www.instagram.com/genesisnet.project/)
 - **Agentverse Agents**: [https://agentverse.ai/agents/genesisnet](https://agentverse.ai/agents/genesisnet)
 
 ---
